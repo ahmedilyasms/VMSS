@@ -1,6 +1,12 @@
 # this script checks that performance is running as expected
 # if performance is too slow the machine is rebooted, reboots continue until deletion or improvement
 
+function Log([string] $dataToLog)
+{
+    Write-Host $dataToLog
+    Add-Content "c:\MyLog.txt" "$dataToLog `n"
+}
+
 function IsCosmosDbEmulatorRunning([string] $source){
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     $pinfo.FileName = $source
@@ -36,11 +42,11 @@ if (Test-Path $Source)
     }
     $Arguments = "/NoExplorer","/NoTelemetry","/DisableRateLimiting","/NoFirewall","/PartitionCount=25","/NoUI","/DataPath=$dataPath"
 
-    Write-Host "Starting Cosmos DB Emulator..."
+    Log "Starting Cosmos DB Emulator..."
     Start-Process -FilePath $Source -ArgumentList $Arguments -Wait
     # This is expected to take < 300 seconds.
     $timeoutSeconds = 300
-    Write-Host "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
+    Log "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
 
     $stopwatch = [system.diagnostics.stopwatch]::StartNew()
     while(-not (IsCosmosDbEmulatorRunning -source $Source) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) {
@@ -50,24 +56,25 @@ if (Test-Path $Source)
     $stopwatch.Stop()
     if(IsCosmosDbEmulatorRunning -source $Source)
     {
-        Write-Host "Cosmos DB Emulator is in running state"
+        Log "Cosmos DB Emulator is in running state"
         $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
         $params = @{"data"="Cosmos DB Emulator is in running state"}
         Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+        exit 0
     } 
     else
     {
-        Write-Error "Cosmos DB Emulator didn't get to running state within $timeoutSeconds seconds. Restarting VM."        
+        Log "Cosmos DB Emulator didn't get to running state within $timeoutSeconds seconds. Exiting with non zero exit code."        
         $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
         $params = @{"data"="Cosmos DB Emulator didn't get to running state within the timeframe. Restarting VM."}
         Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
-        Restart-Computer
+        exit -50
     }
 } 
 else 
 {
     # Ignore Images without Cosmos DB installed
-    Write-Host "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."
+    Log "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."
     try
     {
         # call out for logging.
@@ -77,7 +84,7 @@ else
     }
     catch
     {
-
+        Log $_
     }
     
     exit -50
