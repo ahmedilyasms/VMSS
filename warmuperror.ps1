@@ -42,11 +42,11 @@ if (Test-Path $Source)
     }
     $Arguments = "/NoExplorer","/NoTelemetry","/DisableRateLimiting","/NoFirewall","/PartitionCount=25","/NoUI","/DataPath=$dataPath"
 
-    Log "Starting Cosmos DB Emulator..."
+    Log -dataToLog "Starting Cosmos DB Emulator..."
     Start-Process -FilePath $Source -ArgumentList $Arguments -Wait
     # This is expected to take < 300 seconds.
     $timeoutSeconds = 300
-    Log "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
+    Log -dataToLog "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
 
     $stopwatch = [system.diagnostics.stopwatch]::StartNew()
     while(-not (IsCosmosDbEmulatorRunning -source $Source) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) {
@@ -56,7 +56,7 @@ if (Test-Path $Source)
     $stopwatch.Stop()
     if(IsCosmosDbEmulatorRunning -source $Source)
     {
-        Log "Cosmos DB Emulator is in running state"
+        Log -dataToLog "Cosmos DB Emulator is in running state"
         $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
         $params = @{"data"="Cosmos DB Emulator is in running state but intentionally failing the extension."}
         Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
@@ -64,7 +64,7 @@ if (Test-Path $Source)
     } 
     else
     {
-        Log "Cosmos DB Emulator didn't get to running state within $timeoutSeconds seconds. Exiting with non zero exit code."        
+        Log -dataToLog "Cosmos DB Emulator didn't get to running state within $timeoutSeconds seconds. Exiting with non zero exit code."        
         $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
         $params = @{"data"="Cosmos DB Emulator didn't get to running state within the timeframe. Restarting VM."}
         Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
@@ -74,7 +74,7 @@ if (Test-Path $Source)
 else 
 {
     # Ignore Images without Cosmos DB installed
-    Log "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."
+    Log -dataToLog "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."
     try
     {
         # call out for logging.
@@ -84,7 +84,7 @@ else
     }
     catch
     {
-        Log $_
+        Log -dataToLog $_
     }
     
     exit -50
