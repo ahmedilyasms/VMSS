@@ -1,8 +1,7 @@
 # this script checks that performance is running as expected
 # if performance is too slow the machine is rebooted, reboots continue until deletion or improvement
 
-function Log([string] $dataToLog)
-{
+function Log { param($dataToLog)
     Write-Host $dataToLog
     Add-Content "c:\MyLog.txt" "$dataToLog `n"
 }
