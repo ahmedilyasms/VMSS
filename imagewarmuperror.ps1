@@ -23,6 +23,25 @@ function Log
     # Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
 }
 
+function IsCosmosDbEmulatorRunning([string] $source)
+{
+    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+    $pinfo.FileName = $source
+    $pinfo.UseShellExecute = $true
+    $pinfo.Arguments = "/GetStatus /NoTelemetry"
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo = $pinfo
+    $p.Start() | Out-Null
+    $p.WaitForExit()
+    $exitCode = $p.ExitCode
+    if($exitCode -eq 2)
+    {
+        return $true
+    }
+
+    return $false
+}
+
 $Source = "C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe"
 if (Test-Path $Source) 
 {
@@ -42,7 +61,13 @@ if (Test-Path $Source)
     $stopwatch = [system.diagnostics.stopwatch]::StartNew()
     try
     {
-       exit -29 #intentional
+       while(-not (IsCosmosDbEmulatorRunning -source $Source) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
+       {
+           Start-Sleep -Seconds 1  
+       }
+       
+       Write-Host "All good"
+       Log -dataToLog "All good"
     }
     catch
     {
