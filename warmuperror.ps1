@@ -58,9 +58,9 @@ if (Test-Path $Source)
     {
         Log "Cosmos DB Emulator is in running state"
         $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
-        $params = @{"data"="Cosmos DB Emulator is in running state"}
+        $params = @{"data"="Cosmos DB Emulator is in running state but intentionally failing the extension."}
         Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
-        exit 0
+        exit -100
     } 
     else
     {
