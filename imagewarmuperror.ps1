@@ -65,7 +65,7 @@ if (Test-Path $Source)
        {
            Start-Sleep -Seconds 1  
        }
-       exit -34
+       
        Write-Host "All good"
        Log -dataToLog "All good"
     }
