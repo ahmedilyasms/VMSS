@@ -11,7 +11,7 @@ function Log
     }
    
     Write-Host $dataToLog
-    Add-Content -Path $logFile -Value "$dataToLog `n"
+    Add-Content -Path $logFile -Value "$(Get-Date) $dataToLog `n"
     }
    catch
    {
@@ -68,6 +68,7 @@ if (Test-Path $Source)
        
        Write-Host "All good"
        Log -dataToLog "All good"
+       exit 0
     }
     catch
     {
