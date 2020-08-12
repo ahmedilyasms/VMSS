@@ -1,9 +1,46 @@
 [bool] $isHealthy = $true
+$HealthyLogFile = "c:\Healthy.txt"
+$UnhealthyLogFile = "c:\Unhealthy.txt"
+$logFile = "c:\MyLog.txt"
+
+function GetPreviousWarmupResult()
+{
+   if (Test-Path -Path $HealthyLogFile)
+   {
+      return $true
+   }
+   
+   if (Test-Path -Path $UnhealthyLogFile)
+   {
+      return $false
+   }
+   
+   return $false #unknown/for future
+}
+
+function CheckIfWarmupAlreadyRan()
+{
+   #for now, the only way to determine if it already executed is by checking files on disk that the script already writes.
+   if (Test-Path -Path $HealthyLogFile)
+   {
+      return $true
+   }
+   
+   if (Test-Path -Path $UnhealthyLogFile)
+   {
+      return $true
+   }
+   
+   if (Test-Path -Path $logFile)
+   {
+      return $true
+   }
+   
+   return $false
+}
 
 function FinalizeWarmupResult()
 {
-   $HealthyLogFile = "c:\Healthy.txt"
-   $UnhealthyLogFile = "c:\Unhealthy.txt"
    if ($isHealthy)
    {
       if (!(Test-Path -Path $HealthyLogFile))
@@ -31,9 +68,7 @@ function Log
 { 
   param([string] $dataToLog)
   try
-  {
-    $logFile = "c:\MyLog.txt"
-   
+  {   
     if (!(Test-Path -Path $logFile))
     {
        Set-Content -Path $logFile -Value ""
@@ -71,51 +106,66 @@ function IsCosmosDbEmulatorRunning([string] $source)
     return $false
 }
 
-$Source = "C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe"
-if (Test-Path $Source) 
+if (-not (CheckIfWarmupAlreadyRan))
 {
-    $dataPath = "C:\"
-    if(Test-Path "D:\") 
-    {
-        $dataPath = "D:\"
-    }
-    $Arguments = "/NoExplorer","/NoTelemetry","/DisableRateLimiting","/NoFirewall","/PartitionCount=25","/NoUI","/DataPath=$dataPath"
-
-    Log -dataToLog "Starting Cosmos DB Emulator..."
-    #Start-Process -FilePath $Source -ArgumentList $Arguments -Wait
-    # This is expected to take < 300 seconds.
-    $timeoutSeconds = 300
-    Log -dataToLog "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
-    
-    $stopwatch = [system.diagnostics.stopwatch]::StartNew()
-    try
-    {
-       while(-not (IsCosmosDbEmulatorRunning -source $Source) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
+   $Source = "C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe"
+   if (Test-Path $Source) 
+   {
+       $dataPath = "C:\"
+       if(Test-Path "D:\") 
        {
-           Log -dataToLog "Sleeping..."
-           Start-Sleep -Seconds 1  
+           $dataPath = "D:\"
        }
-       
-       $isHealthy = $true
-       Write-Host "All good"
-       Log -dataToLog "All good"
-    }
-    catch
-    {
+       $Arguments = "/NoExplorer","/NoTelemetry","/DisableRateLimiting","/NoFirewall","/PartitionCount=25","/NoUI","/DataPath=$dataPath"
+
+       Log -dataToLog "Starting Cosmos DB Emulator..."
+       #Start-Process -FilePath $Source -ArgumentList $Arguments -Wait
+       # This is expected to take < 300 seconds.
+       $timeoutSeconds = 300
+       Log -dataToLog "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
+
+       $stopwatch = [system.diagnostics.stopwatch]::StartNew()
+       try
+       {
+          while(-not (IsCosmosDbEmulatorRunning -source $Source) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
+          {
+              Log -dataToLog "Sleeping..."
+              Start-Sleep -Seconds 1  
+          }
+
+          $isHealthy = $true
+          Write-Host "All good"
+          Log -dataToLog "All good"
+       }
+       catch
+       {
+          $isHealthy = $false
+          Write-Host $_ 
+          $string_err = $_ | Out-String
+          Log -dataToLog "$string_err"
+       }
+
+       $stopwatch.Stop()
+   } 
+   else 
+   { 
        $isHealthy = $false
-       Write-Host $_ 
-       $string_err = $_ | Out-String
-       Log -dataToLog "$string_err"
-    }
+       # Ignore Images without Cosmos DB installed
+       Log -dataToLog "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."   
+   }
 
-    $stopwatch.Stop()
-} 
-else 
-{ 
-    $isHealthy = $false
-    # Ignore Images without Cosmos DB installed
-    Log -dataToLog "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."   
+   #Finalize the warmup result
+   FinalizeWarmupResult
 }
-
-#Finalize the warmup result
-FinalizeWarmupResult
+else
+{
+   #Warmup already ran. What was the result? Lets return that result back to the caller.
+   if (-not (GetPreviousWarmupResult))
+   {
+      return -200 #return non zero exit code
+   }
+   else
+   {
+      return 0
+   }
+}
