@@ -1,3 +1,32 @@
+[bool] $isHealthy = $true
+
+function FinalizeWarmupResult()
+{
+   $HealthyLogFile = "c:\Healthy.txt"
+   $UnhealthyLogFile = "c:\Unhealthy.txt"
+   if ($isHealthy)
+   {
+      if (!(Test-Path -Path $HealthyLogFile))
+      {
+          Set-Content -Path $HealthyLogFile -Value ""
+      }
+    
+      Add-Content -Path $HealthyLogFile -Value "$(Get-Date) Determined all is healthy `n"
+      exit 0
+   }
+   else
+   { 
+      if (!(Test-Path -Path $UnhealthyLogFile))
+      {
+          Set-Content -Path $UnhealthyLogFile -Value ""
+      }
+    
+      Log -dataToLog "Unhealthy..."
+      Add-Content -Path $UnhealthyLogFile -Value "$(Get-Date) Determined all is NOT healthy `n"
+      exit -200
+   }
+}
+
 function Log 
 { 
   param([string] $dataToLog)
@@ -12,7 +41,7 @@ function Log
    
     Write-Host $dataToLog
     Add-Content -Path $logFile -Value "$(Get-Date) $dataToLog `n"
-    }
+   }
    catch
    {
       Write-Host $_
@@ -63,24 +92,30 @@ if (Test-Path $Source)
     {
        while(-not (IsCosmosDbEmulatorRunning -source $Source) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
        {
+           Log -dataToLog "Sleeping..."
            Start-Sleep -Seconds 1  
        }
        
+       $isHealthy = $true
        Write-Host "All good"
        Log -dataToLog "All good"
-       exit 0
     }
     catch
     {
-       Write-Host $_
-       exit -19
+       $isHealthy = $false
+       Write-Host $_ 
+       $string_err = $_ | Out-String
+       Log -dataToLog "$string_err"
     }
 
     $stopwatch.Stop()
 } 
 else 
-{
+{ 
+    $isHealthy = $false
     # Ignore Images without Cosmos DB installed
-    Log -dataToLog "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."
-    exit -50
+    Log -dataToLog "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."   
 }
+
+#Finalize the warmup result
+FinalizeWarmupResult
