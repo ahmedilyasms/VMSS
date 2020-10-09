@@ -140,10 +140,10 @@ FinalizeWarmupResult
 if ($isHealthy -eq $false)
 {
     Write-Host "It reported false"
-    return 0 #should be return -1 or whatever
+    exit 0 #should be return -1 or whatever
 }
 else
 {
     Write-Host "It reported true"
-    return 0
+    exit 0
 }
