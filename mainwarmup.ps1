@@ -5,19 +5,6 @@ $HealthyLogFile = "c:\Healthy.txt"
 $UnhealthyLogFile = "c:\Unhealthy.txt"
 $logFile = "c:\MyLog.txt"
 
-function DoPageFileMove {
-    # This script sets a larger page file size on the D drive, this overwrites the existing page file settings and shouldn't be used outside of Azure.
-
-    $physicalmem = systeminfo | Where-Object {$_ -Match "Total Physical Memory"}
-
-    $physicalmb = (($physicalmem -replace '\D+(\d+)','$1') -replace '(\d+)\D+','$1')
-
-    # Windows perf team recommends 1.5x
-    $maxmb = [int]([int]$physicalmb * 1.5)
-
-    reg ADD "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v PagingFiles /t REG_MULTI_SZ /d "D:\pagefile.sys $physicalmb $maxmb" /f
-}
-
 function Log 
 { 
   param([string] $dataToLog)
@@ -39,66 +26,6 @@ function Log
     # $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
     # $params = @{"data"="Cosmos DB Emulator is in running state but intentionally failing the extension."}
     # Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
-}
-
-
-function Get-SqlDataFolderStatus([String]$Source, [String]$Destination)
-{
-    if ((Test-Path $Destination) -and (Test-Path $Source))
-    {
-        $sourceContents = Get-ChildItem -Recurse -path "$Source"
-        $destinationContents = Get-ChildItem -Recurse -path "$Destination"
-        if (($destinationContents) -and -not (Compare-Object -ReferenceObject $sourceContents -DifferenceObject $destinationContents))
-        {
-            if ((Get-Service -Name "SQL Server (MSSQLSERVER)").Status -eq 'Running')
-            {
-                if (Test-Path "$Source\MS_AgentSigningCertificate.cer")
-                {
-                    return $true
-                }
-            }
-        }
-    }
-    return $false
-}
-
-function DoSQLPerf
-{
-    $SQLSource = "C:\Program Files\Microsoft SQL Server\MSSQL13.MSSQLSERVER\MSSQL\DATA"
-    $SQLDestination = "D:\sql\Data"
-
-    if (-not (Get-SqlDataFolderStatus $SQLSource $SQLDestination))
-    {
-        Write-Host "trying to move"
-        # This is expected to take < 15 seconds.
-        $timeoutSeconds = 30
-        $code = {
-            param (
-                [string]$Source,
-                [string]$Destination
-            )
-            net stop "SQL Server (MSSQLSERVER)"
-            xcopy $Source "$Destination\" /S /E /K /O
-            rmdir $Source -Recurse -Force
-            New-Item -Path $Source -ItemType SymbolicLink -Value $Destination
-            net start "SQL Server (MSSQLSERVER)"
-    
-            Invoke-Sqlcmd -Query "SELECT cast('12/12/12 12:12:12' as datetime2) AT TIME ZONE 'UTC'"
-        }
-        $j = Start-Job -ScriptBlock $code -ArgumentList ($SQLSource, $SQLDestination)
-        if (Wait-Job $j -Timeout $timeoutSeconds) { Receive-Job $j }
-        Remove-Job -force $j
-        if (-not (Get-SqlDataFolderStatus $SQLSource $SQLDestination))
-        {
-            Write-Error "Everything went wrong with the sql restart"
-            Log -dataToLog "Everything went wrong with the sql restart so returning false"
-            #Restart-Computer
-            return $false
-        }
-    }
-    Write-Host "Got here without moving"
-    Log -dataToLog "Got here without moving"
-    return $true
 }
 
 function IsCosmosDbEmulatorRunning([string] $source)
@@ -167,7 +94,6 @@ function DoCosmosDBCheck
        Log -dataToLog "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."   
        return $false
    }
-
 }
 
 function FinalizeWarmupResult()
@@ -195,34 +121,19 @@ function FinalizeWarmupResult()
    }
 }
 
-Log -dataToLog "Doing pageFile move"
-DoPageFileMove
-Log -dataToLog "Done pagefile move"
+Log -dataToLog "Beginning to do Cosmos DB Check"
 
-Log -dataToLog "Beginning to do SQL Perf"
-$sqlPerfResult = DoSQLPerf
-Log -dataToLog "SQL Perf result returned: $($sqlPerfResult)"
-$isHealthy = $sqlPerfResult
-if ($sqlPerfResult -eq $true)
+$cosmosDBCheckResult = DoCosmosDBCheck
+$isHealthy = $cosmosDBCheckResult
+Log -dataToLog "End doing cosmos db check. Result: $($cosmosDBCheckResult)"
+FinalizeWarmupResult
+if ($isHealthy -eq $false)
 {
-    Log -dataToLog "Beginning to do Cosmos DB Check"
-    #now to CosmosDB check
-    $cosmosDBCheckResult = DoCosmosDBCheck
-    $isHealthy = $cosmosDBCheckResult
-    Log -dataToLog "End doing cosmos db check. Result: $($cosmosDBCheckResult)"
-    FinalizeWarmupResult
-    if (-not $isHealthy)
-    {
-        return 0 #should be return -1 or whatever
-    }
-    else
-    {
-        return 0
-    }
+    Write-Host "It reported false"
+    return -1 #should be return -1 or whatever
 }
 else
 {
-    FinalizeWarmupResult
-    Log -dataToLog "SQL Perf went bad"
-    return 0 #-10 #SQL
+    Write-Host "It reported true"
+    return 0
 }
