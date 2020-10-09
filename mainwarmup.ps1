@@ -60,7 +60,7 @@ function DoCosmosDBCheck
        $Arguments = "/NoExplorer","/NoTelemetry","/DisableRateLimiting","/NoFirewall","/PartitionCount=25","/NoUI","/DataPath=$dataPath"
 
        Log -dataToLog "Starting Cosmos DB Emulator..."
-       Start-Process -FilePath $Source -ArgumentList $Arguments -Wait
+       # Start-Process -FilePath $Source -ArgumentList $Arguments -Wait
        # This is expected to take < 300 seconds.
        $timeoutSeconds = 300
        Log -dataToLog "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
@@ -74,9 +74,19 @@ function DoCosmosDBCheck
               Start-Sleep -Seconds 1  
           }
           
-          Write-Host "All good"
-          Log -dataToLog "All good"
-          return $true
+          if(IsCosmosDbEmulatorRunning -source $Source)
+          {
+             Write-Host "Cosmos DB Emulator is in running state"
+             Write-Host "All good"
+             Log -dataToLog "All good"
+             return $true
+          } 
+          else
+          {
+              Write-Host "Cosmos DB Emulator didn't get to running state within $timeoutSeconds seconds. Returning non-zero exit code"
+              Log -dataToLog "Cosmos DB Emulator didn't get to running state within $timeoutSeconds seconds. Returning non-zero exit code"
+              return $false
+          }
        }
        catch
        {
