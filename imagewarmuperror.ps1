@@ -82,9 +82,9 @@ function Log
       Write-Host $_
       exit -200
    }
-    # $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
-    # $params = @{"data"="Cosmos DB Emulator is in running state but intentionally failing the extension."}
-    # Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+     $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
+     $params = @{"data"="Cosmos DB Emulator is in running state but intentionally failing the extension."}
+     Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
 }
 
 $lastReturnValueForCosmosDbEmulatorRunning = $false
@@ -138,6 +138,10 @@ if (-not (CheckIfWarmupAlreadyRan))
           
           Log -dataToLog "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
           Write-Host "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
+          $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
+          $params = @{"data"="Outside while loop and last result was: $lastReturnValueForCosmosDbEmulatorRunning"}
+          Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+     
           $isHealthy = $true #$lastReturnValueForCosmosDbEmulatorRunning
           if ($isHealth) 
           {
