@@ -87,6 +87,7 @@ function Log
     # Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
 }
 
+$lastReturnValueForCosmosDbEmulatorRunning = $false
 function IsCosmosDbEmulatorRunning([string] $source)
 {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -100,9 +101,11 @@ function IsCosmosDbEmulatorRunning([string] $source)
     $exitCode = $p.ExitCode
     if($exitCode -eq 2)
     {
+        $lastReturnValueForCosmosDbEmulatorRunning = $true
         return $true
     }
 
+    $lastReturnValueForCosmosDbEmulatorRunning = $false
     return $false
 }
 
@@ -127,12 +130,20 @@ if (-not (CheckIfWarmupAlreadyRan))
        $stopwatch = [system.diagnostics.stopwatch]::StartNew()
        try
        {
-          while(-not (IsCosmosDbEmulatorRunning -source $Source) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
+          while(-not (IsCosmosDbEmulatorRunning -source $Source)) 
           {
-              Log -dataToLog "Sleeping..."
-              Start-Sleep -Seconds 1  
+              if ($stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
+              {
+                 Log -dataToLog "Sleeping..."
+                 Start-Sleep -Seconds 1  
+              }
+              else
+              {
+                 Log -dataToLog "Stopwatch has hit the timeout. Last Result for cosmos db check is: $lastReturnValueForCosmosDbEmulatorRunning"
+              }
           }
-
+          
+          Log -dataToLog "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
           $isHealthy = $true
           Write-Host "All good"
           Log -dataToLog "All good"
