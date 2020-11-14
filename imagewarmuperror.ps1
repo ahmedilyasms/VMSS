@@ -79,12 +79,17 @@ function Log
    }
    catch
    {
+   
+     $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
+     $params = @{"data"="Exception in log: $_"}
+     Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+     
       Write-Host $_
       exit -200
    }
-     $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
-     $params = @{"data"="Cosmos DB Emulator is in running state but intentionally failing the extension."}
-     Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+     #$tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
+     #$params = @{"data"="Cosmos DB Emulator is in running state but intentionally failing the extension."}
+     #Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
 }
 
 $lastReturnValueForCosmosDbEmulatorRunning = $false
