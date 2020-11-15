@@ -66,7 +66,7 @@ function FinalizeWarmupResult()
 
 function Log 
 { 
-  param([string] $dataToLog)
+  param([string] $dataToLog, [bool]$logToService = $true)
   try
   {   
     if (!(Test-Path -Path $logFile))
@@ -76,6 +76,23 @@ function Log
    
     Write-Host $dataToLog
     Add-Content -Path $logFile -Value "$(Get-Date) $dataToLog `n"
+    
+    if ($logToService)
+    {
+       try
+       {
+         $IPInfo = Get-NetIPAddress -AddressFamily IPv4 -AddressState Preferred
+         $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
+         $machineInfo = "$env:COMPUTERNAME, $IPInfo"
+         $params = @{"data"="$machineInfo >>> $dataToLog"}
+         Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+       }
+       catch
+       {
+         Write-Host "Unable to call webservice to log: $_"
+         Add-Content -Path $logFile -Value "Unable to call webservice to log: $_"
+       }
+    }
    }
    catch
    {
@@ -137,21 +154,18 @@ if (-not (CheckIfWarmupAlreadyRan))
        {
           while(-not (IsCosmosDbEmulatorRunning -source $Source) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
           {
-                 Log -dataToLog "Sleeping..."
+                 Log -dataToLog "Sleeping..." -logToService $false
                  Start-Sleep -Seconds 1  
           }
           
           Log -dataToLog "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
           Write-Host "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
-          $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
-          $params = @{"data"="Outside while loop and last result was: $lastReturnValueForCosmosDbEmulatorRunning"}
-          Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
      
           $isHealthy = $true #$lastReturnValueForCosmosDbEmulatorRunning
           if ($isHealth) 
           {
-          Write-Host "All good"
-          Log -dataToLog "All good"
+             Write-Host "All good"
+             Log -dataToLog "All good"
           }
           else
           {
