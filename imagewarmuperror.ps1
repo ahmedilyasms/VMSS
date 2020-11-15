@@ -161,7 +161,7 @@ if (-not (CheckIfWarmupAlreadyRan))
           Log -dataToLog "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
           Write-Host "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
      
-          $isHealthy = $true #$lastReturnValueForCosmosDbEmulatorRunning
+          $isHealthy = IsCosmosDbEmulatorRunning -source $Source
           if ($isHealth) 
           {
              Write-Host "All good"
@@ -172,6 +172,9 @@ if (-not (CheckIfWarmupAlreadyRan))
             Write-Host "Not good"
             Log -dataToLog "Not good"
           }
+          
+          Log -dataToLog "After one last check, The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
+          Write-Host "After one last check, The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
        }
        catch
        {
