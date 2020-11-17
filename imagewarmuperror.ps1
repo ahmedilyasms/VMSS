@@ -1,4 +1,5 @@
 [bool] $isHealthy = $true
+[bool] $lastReturnValueForCosmosDbEmulatorRunning = $false
 $HealthyLogFile = "c:\Healthy.txt"
 $UnhealthyLogFile = "c:\Unhealthy.txt"
 $logFile = "c:\MyLog.txt"
@@ -41,6 +42,7 @@ function CheckIfWarmupAlreadyRan()
 
 function FinalizeWarmupResult()
 {
+   Log -dataToLog "In FinalizeWarmupResult with isHealthy being: $isHealthy"
    if ($isHealthy)
    {
       if (!(Test-Path -Path $HealthyLogFile))
@@ -84,7 +86,7 @@ function Log
          $IPInfo = Get-NetIPAddress -AddressFamily IPv4 -AddressState Preferred
          $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
          $machineInfo = "$env:COMPUTERNAME, $IPInfo"
-         $params = @{"data"="$machineInfo >>> $dataToLog"}
+         $params = @{"data"="$(Get-Date)- $machineInfo >>> $dataToLog"}
          Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
        }
        catch
@@ -109,7 +111,6 @@ function Log
      #Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
 }
 
-$lastReturnValueForCosmosDbEmulatorRunning = $false
 function IsCosmosDbEmulatorRunning([string] $source)
 {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -123,16 +124,14 @@ function IsCosmosDbEmulatorRunning([string] $source)
     $exitCode = $p.ExitCode
     if($exitCode -eq 2)
     {
-        $lastReturnValueForCosmosDbEmulatorRunning = $true
         return $true
     }
-
-    $lastReturnValueForCosmosDbEmulatorRunning = $false
+    
     return $false
 }
 
-if (-not (CheckIfWarmupAlreadyRan))
-{
+#if (-not (CheckIfWarmupAlreadyRan))
+#{
    $Source = "C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe"
    if (Test-Path $Source) 
    {
@@ -152,16 +151,24 @@ if (-not (CheckIfWarmupAlreadyRan))
        $stopwatch = [system.diagnostics.stopwatch]::StartNew()
        try
        {
-          while(-not (IsCosmosDbEmulatorRunning -source $Source) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
+          $lastReturnValueForCosmosDbEmulatorRunning = $false
+          while(-not ($lastReturnValueForCosmosDbEmulatorRunning) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
           {
+                 $lastReturnValueForCosmosDbEmulatorRunning = IsCosmosDbEmulatorRunning -source $Source
                  Log -dataToLog "Sleeping..." -logToService $false
-                 Start-Sleep -Seconds 1  
+                 Start-Sleep -Seconds 10
           }
           
           Log -dataToLog "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
           Write-Host "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
-     
-          $isHealthy = IsCosmosDbEmulatorRunning -source $Source
+          
+          #one more if false
+          if (-not ($lastReturnValueForCosmosDbEmulatorRunning))
+          {
+            $lastReturnValueForCosmosDbEmulatorRunning = IsCosmosDbEmulatorRunning -source $Source
+          }
+               
+          $isHealthy = $lastReturnValueForCosmosDbEmulatorRunning #IsCosmosDbEmulatorRunning -source $Source
           if ($isHealth) 
           {
              Write-Host "All good"
@@ -172,9 +179,6 @@ if (-not (CheckIfWarmupAlreadyRan))
             Write-Host "Not good"
             Log -dataToLog "Not good"
           }
-          
-          Log -dataToLog "After one last check, The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
-          Write-Host "After one last check, The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
        }
        catch
        {
@@ -195,16 +199,16 @@ if (-not (CheckIfWarmupAlreadyRan))
 
    #Finalize the warmup result
    FinalizeWarmupResult
-}
-else
-{
+#}
+#else
+#{
    #Warmup already ran. What was the result? Lets return that result back to the caller.
-   if (-not (GetPreviousWarmupResult))
-   {
-      return -200 #return non zero exit code
-   }
-   else
-   {
-      return 0
-   }
-}
+#   if (-not (GetPreviousWarmupResult))
+#   {
+#      return -200 #return non zero exit code
+#   }
+#   else
+#   {
+#      return 0
+#   }
+#}
