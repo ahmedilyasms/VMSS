@@ -159,6 +159,7 @@ function IsCosmosDbEmulatorRunning([string] $source)
                  Start-Sleep -Seconds 10
           }
           
+          $stopwatch.Stop()
           Log -dataToLog "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
           Write-Host "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
           
@@ -182,13 +183,13 @@ function IsCosmosDbEmulatorRunning([string] $source)
        }
        catch
        {
+          $stopwatch.Stop()
           $isHealthy = $false
           Write-Host $_ 
           $string_err = $_ | Out-String
           Log -dataToLog "$string_err"
        }
 
-       $stopwatch.Stop()
    } 
    else 
    { 
