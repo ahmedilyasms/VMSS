@@ -1,3 +1,4 @@
+Log -dataToLog "Intentionally exiting 0 without doing warmup stuff."
 exit 0
 
 [bool] $isHealthy = $true
