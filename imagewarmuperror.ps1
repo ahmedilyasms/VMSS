@@ -167,6 +167,9 @@ function IsCosmosDbEmulatorRunning([string] $source)
           if (-not ($lastReturnValueForCosmosDbEmulatorRunning))
           {
             $lastReturnValueForCosmosDbEmulatorRunning = IsCosmosDbEmulatorRunning -source $Source
+            
+            Log -dataToLog "One last run... The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
+            Write-Host "One last run... The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
           }
                
           $isHealthy = $lastReturnValueForCosmosDbEmulatorRunning #IsCosmosDbEmulatorRunning -source $Source
