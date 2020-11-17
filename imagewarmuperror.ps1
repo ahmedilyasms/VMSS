@@ -143,7 +143,7 @@ function IsCosmosDbEmulatorRunning([string] $source)
        $Arguments = "/NoExplorer","/NoTelemetry","/DisableRateLimiting","/NoFirewall","/PartitionCount=25","/NoUI","/DataPath=$dataPath"
 
        Log -dataToLog "Starting Cosmos DB Emulator..."
-       #Start-Process -FilePath $Source -ArgumentList $Arguments -Wait
+       Start-Process -FilePath $Source -ArgumentList $Arguments -Wait
        # This is expected to take < 300 seconds.
        $timeoutSeconds = 300
        Log -dataToLog "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
