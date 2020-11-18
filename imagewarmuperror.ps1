@@ -124,9 +124,11 @@ function IsCosmosDbEmulatorRunning([string] $source)
     $exitCode = $p.ExitCode
     if($exitCode -eq 2)
     {
+        $lastReturnValueForCosmosDbEmulatorRunning = $true
         return $true
     }
     
+    $lastReturnValueForCosmosDbEmulatorRunning = $false
     return $false
 }
 
@@ -168,10 +170,8 @@ function IsCosmosDbEmulatorRunning([string] $source)
        $stopwatch = [system.diagnostics.stopwatch]::StartNew()
        try
        {
-          $lastReturnValueForCosmosDbEmulatorRunning = $false
-          while(-not ($lastReturnValueForCosmosDbEmulatorRunning) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
+          while(-not (IsCosmosDbEmulatorRunning -source $Source) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
           {
-                 $lastReturnValueForCosmosDbEmulatorRunning = IsCosmosDbEmulatorRunning -source $Source
                  Log -dataToLog "Sleeping..." -logToService $false
                  Start-Sleep -Seconds 10
           }
