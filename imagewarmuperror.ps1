@@ -71,12 +71,12 @@ function Log
   param([string] $dataToLog, [bool]$logToService = $true)
   try
   {   
+    Write-Host $dataToLog
     if (!(Test-Path -Path $logFile))
     {
        Set-Content -Path $logFile -Value ""
     }
    
-    Write-Host $dataToLog
     Add-Content -Path $logFile -Value "$(Get-Date) $dataToLog `n"
     
     if ($logToService)
@@ -161,8 +161,17 @@ function IsCosmosDbEmulatorRunning([string] $source)
         }
         
        Log -dataToLog "Starting Cosmos DB Emulator..."
-       $tmp = Start-Process -FilePath $Source -ArgumentList $Arguments
-       $tmp.WaitForExit(30000)
+       try
+       {
+           $tmp = Start-Process -FilePath $Source -ArgumentList $Arguments -PassThru
+           $tmp | Wait-Process -Timeout 5 -ErrorAction Stop
+           Log -dataToLog "Waited for process successfully for timeout to start the emulator"
+       }
+       catch
+       {
+           Log -dataToLog "Error in wait process: $_"
+       }
+    
        # This is expected to take < 300 seconds.
        $timeoutSeconds = 300
        Log -dataToLog "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
