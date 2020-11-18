@@ -132,8 +132,8 @@ function IsCosmosDbEmulatorRunning([string] $source)
     return $false
 }
 
-#if (-not (CheckIfWarmupAlreadyRan))
-#{
+if (-not (CheckIfWarmupAlreadyRan))
+{
    $Source = "C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe"
    if (Test-Path $Source) 
    {
@@ -229,16 +229,16 @@ function IsCosmosDbEmulatorRunning([string] $source)
 
    #Finalize the warmup result
    FinalizeWarmupResult
-#}
-#else
-#{
+}
+else
+{
    #Warmup already ran. What was the result? Lets return that result back to the caller.
-#   if (-not (GetPreviousWarmupResult))
-#   {
-#      return -200 #return non zero exit code
-#   }
-#   else
-#   {
-#      return 0
-#   }
-#}
+   if (-not (GetPreviousWarmupResult))
+   {
+      exit -200 #return non zero exit code
+   }
+   else
+   {
+      exit 0
+   }
+}
