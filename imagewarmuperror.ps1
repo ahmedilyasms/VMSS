@@ -145,8 +145,25 @@ function IsCosmosDbEmulatorRunning([string] $source)
        }
        $Arguments = "/NoExplorer","/NoTelemetry","/DisableRateLimiting","/NoFirewall","/PartitionCount=25","/NoUI","/DataPath=$dataPath"
 
+        # find proc and taskkill
+        try
+        {
+            Log -dataToLog "Finding cosmosdb emulator related items first and killing it if its running"
+            Get-Process | Where-Object {$_.Name -like "Microsoft.Azure.Cosmos*"} | Stop-Process
+            Get-Process | Where-Object {$_.Name -like "CosmosDb*"} | Stop-Process
+            Log -dataToLog "Finished finding cosmosdb emulator related items"
+            Log -dataToLog "Waiting for a few seconds..."
+            Start-Sleep -Seconds 5
+        }
+        catch
+        {
+            Log -dataToLog $_
+            #No proc found
+        }
+        
        Log -dataToLog "Starting Cosmos DB Emulator..."
-       #Start-Process -FilePath $Source -ArgumentList $Arguments -Wait
+       $tmp = Start-Process -FilePath $Source -ArgumentList $Arguments
+       $tmp.WaitForExit(30000)
        # This is expected to take < 300 seconds.
        $timeoutSeconds = 300
        Log -dataToLog "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
