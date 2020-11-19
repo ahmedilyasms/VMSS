@@ -54,6 +54,21 @@ function Log
    }
 }
 
+
+function AddOrUpdateRegistryValueBool {
+  param([string] $regPath, [string] $regKey, [bool]$regKeyBoolValue)
+
+  [int]$intVal = [Convert]::ToInt32($regKeyBoolValue)
+
+  if (!(Test-Path $regPath))
+  {
+    New-Item -Path $regPath -Force | Out-Null
+  }
+  
+  New-ItemProperty -Path $regPath -Name $regKey -Value $intVal -PropertyType DWORD -Force | Out-Null
+  Log -dataToLog "Wrote Registry: $regKey : $regKeyBoolValue"
+}
+
 function AddOrUpdateHealthyStatus { param([bool]$isHealthyVal)
     AddOrUpdateRegistryValueBool -regPath $registryPath -regKeyName $regKeyIsHealthy -regKeyBoolValue $isHealthyVal
 }
@@ -90,20 +105,6 @@ function GetHealthyStatus()
     return $val
 }
 
-
-function AddOrUpdateRegistryValueBool {
-  param([string] $regPath, [string] $regKey, [bool]$regKeyBoolValue)
-
-  [int]$intVal = [Convert]::ToInt32($regKeyBoolValue)
-
-  if (!(Test-Path $regPath))
-  {
-    New-Item -Path $regPath -Force | Out-Null
-  }
-  
-  New-ItemProperty -Path $regPath -Name $regKey -Value $intVal -PropertyType DWORD -Force | Out-Null
-  Log -dataToLog "Wrote Registry: $regKey : $regKeyBoolValue"
-}
 
 function AddOrUpdateWarmupRegistry {
   param([bool] $isWarmupRunning)
