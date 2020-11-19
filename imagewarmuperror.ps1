@@ -84,7 +84,7 @@ function AddOrUpdateRegistryValueBool {
 }
 
 function AddOrUpdateHealthyStatus { param([bool]$isHealthyVal)
-    AddOrUpdateRegistryValueBool -regPath $registryPath -regKeyName $regKeyIsHealthy -regKeyBoolValue $isHealthyVal
+    AddOrUpdateRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -regKeyBoolValue $isHealthyVal
 }
 
 function GetRegistryValue{ param([string]$registryPath, [string]$registryKey)
