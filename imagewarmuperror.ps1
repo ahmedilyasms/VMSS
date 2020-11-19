@@ -1,4 +1,4 @@
-[bool] $lastReturnValueForCosmosDbEmulatorRunning = $false
+[bool]$lastReturnValueForCosmosDbEmulatorRunning = $false
 $registryPath = "HKCU:\Software\Microsoft\AzureDevOps\VMSS"
 $regKeyIsWarmupRunning = "IsWarmupRunning"
 $regKeyIsHealthy = "IsHealthy"
@@ -87,12 +87,14 @@ function GetRegistryValue{ param([string]$registryPath, [string]$registryKey)
 function GetRegistryValueBool{ param([string]$registryPath, [string]$registryKey, [bool]$returnNullIfNotFound = $false)
    
     $value = GetRegistryValue -registryPath $registryPath -registryKey $registryKey
+    Log -dataToLog "Before eval value: GetRegValBool $registryPath $registryKey : Value is: $value"
     if ($value -eq $null) 
     {
         if ($returnNullIfNotFound -eq $true) { return $null }
     }
 
     [bool]$convertedValue = [Convert]::ToBoolean($value)
+    Log -dataToLog "GetRegValBool $registryPath $registryKey : Value is: $value and convertedval is $convertedValue"
     return $convertedValue
 }
 
@@ -121,7 +123,9 @@ function GetPreviousHealthResult{ param([bool]$returnNullIfKeyNotFound = $false)
 function IsFirstWarmupRun()
 {
     #Null should indicate yes, first warmup is running
+    Log -dataToLog "IsFirstWarmuprun..."
     $warmupRegKeyFound = GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
+    Log -dataToLog "warmupregkeyfound is: $warmupRegKeyFound"
     if ($warmupRegKeyFound -eq $null) { return $true } else { return $false }
     #We return false even if a key is found because we care, at this point, if the key exists or not. A non existant key == this is first time its running.
 }
@@ -272,9 +276,9 @@ if (CheckIfWarmupAlreadyRan -eq $false) #Consider changing to use IsFirstWarmup?
             Log -dataToLog "One last run... The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
           }
                
-          $isHealthy = $lastReturnValueForCosmosDbEmulatorRunning #IsCosmosDbEmulatorRunning -source $Source
+          $isHealthy = $lastReturnValueForCosmosDbEmulatorRunning
           AddOrUpdateHealthyStatus -isHealthyVal $isHealthy
-          if ($isHealthy) 
+          if ($isHealthy -eq $true) 
           {
              Log -dataToLog "All good"
           }
@@ -297,7 +301,8 @@ if (CheckIfWarmupAlreadyRan -eq $false) #Consider changing to use IsFirstWarmup?
    { 
        AddOrUpdateHealthyStatus -isHealthyVal $false
        # Ignore Images without Cosmos DB installed
-       Log -dataToLog "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."   
+       Log -dataToLog "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."
+       exit -199   
    }
 
    #Finalize the warmup result
