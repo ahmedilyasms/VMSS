@@ -1,4 +1,52 @@
-Log -dataToLog "Logging"
+function Log 
+{ 
+  param([string] $dataToLog, [bool]$logToService = $true)
+  try
+  {   
+    Write-Host $dataToLog
+    if (!(Test-Path -Path $logFile))
+    {
+       Set-Content -Path $logFile -Value ""
+    }
+   
+    Add-Content -Path $logFile -Value "$(Get-Date) $dataToLog `n"
+    
+    if ($logToService)
+    {
+       try
+       {
+         $IPInfo = Get-NetIPAddress -AddressFamily IPv4 -AddressState Preferred
+         $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
+         $machineInfo = "$env:COMPUTERNAME, $IPInfo"
+         $params = @{"data"="$(Get-Date)- $machineInfo >>> $dataToLog"}
+         Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+       }
+       catch
+       {
+         Write-Host "Unable to call webservice to log: $_"
+         Add-Content -Path $logFile -Value "Unable to call webservice to log: $_"
+       }
+    }
+   }
+   catch
+   {
+    try
+    {
+     $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
+     $params = @{"data"="Exception in log: $_"}
+     Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+     }
+     catch
+     {
+        Write-Host $_
+     }
+
+      Write-Host $_
+      exit -200
+   }
+}
+
+Log -dataToLog "Logging"-
 exit 0
 
 [bool] $isHealthy = $true
@@ -155,53 +203,6 @@ function FinalizeWarmupResult()
    }
 }
 
-function Log 
-{ 
-  param([string] $dataToLog, [bool]$logToService = $true)
-  try
-  {   
-    Write-Host $dataToLog
-    if (!(Test-Path -Path $logFile))
-    {
-       Set-Content -Path $logFile -Value ""
-    }
-   
-    Add-Content -Path $logFile -Value "$(Get-Date) $dataToLog `n"
-    
-    if ($logToService)
-    {
-       try
-       {
-         $IPInfo = Get-NetIPAddress -AddressFamily IPv4 -AddressState Preferred
-         $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
-         $machineInfo = "$env:COMPUTERNAME, $IPInfo"
-         $params = @{"data"="$(Get-Date)- $machineInfo >>> $dataToLog"}
-         Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
-       }
-       catch
-       {
-         Write-Host "Unable to call webservice to log: $_"
-         Add-Content -Path $logFile -Value "Unable to call webservice to log: $_"
-       }
-    }
-   }
-   catch
-   {
-    try
-    {
-     $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
-     $params = @{"data"="Exception in log: $_"}
-     Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
-     }
-     catch
-     {
-        Write-Host $_
-     }
-
-      Write-Host $_
-      exit -200
-   }
-}
 
 function IsCosmosDbEmulatorRunning([string] $source)
 {
