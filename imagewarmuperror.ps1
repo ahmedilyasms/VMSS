@@ -3,16 +3,70 @@ $registryPath = "HKCU:\Software\Microsoft\AzureDevOps\VMSS"
 $regKeyIsWarmupRunning = "IsWarmupRunning"
 $regKeyIsHealthy = "IsHealthy"
 
+function Log 
+{ 
+  param([string] $dataToLog, [bool]$logToService = $true)
+  
+  $logFile = "c:\MyLog.txt"
+
+  try
+  {   
+    Write-Host $dataToLog
+    if (!(Test-Path -Path $logFile))
+    {
+       Set-Content -Path $logFile -Value ""
+    }
+   
+    Add-Content -Path $logFile -Value "$(Get-Date) $dataToLog `n"
+    
+    if ($logToService)
+    {
+       try
+       {
+         $IPInfo = Get-NetIPAddress -AddressFamily IPv4 -AddressState Preferred
+         $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
+         $machineInfo = "$env:COMPUTERNAME, $IPInfo"
+         $params = @{"data"="$(Get-Date)- $machineInfo >>> $dataToLog"}
+         Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+       }
+       catch
+       {
+         Write-Host "Unable to call webservice to log: $_"
+         Add-Content -Path $logFile -Value "Unable to call webservice to log: $_"
+       }
+    }
+   }
+   catch
+   {
+    try
+    {
+     $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
+     $params = @{"data"="Exception in log: $_"}
+     Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+     }
+     catch
+     {
+        Write-Host $_
+     }
+
+      Write-Host $_
+      exit -200
+   }
+}
+
 function AddOrUpdateHealthyStatus { param([bool]$isHealthyVal)
     AddOrUpdateRegistryValueBool -regPath $registryPath -regKeyName $regKeyIsHealthy -regKeyBoolValue $isHealthyVal
 }
 
-function GetHealthyStatus()
-{
-    $healthyStatusValue = GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyIsHealthy
-
-    $val = [Convert]::ToBoolean($healthyStatusValue) #if reg key not found, null is returned and doing a convert tobool makes it a false value. 
-    return $val
+function GetRegistryValue{ param([string]$registryPath, [string]$registryKey)
+    
+    if (!(Test-Path $registryPath))
+    {
+        return $null
+    }
+    
+    $value = (Get-ItemProperty -Path $registryPath -Name $registryKey).$registryKey
+    return $value
 }
 
 function GetRegistryValueBool{ param([string]$registryPath, [string]$registryKey, [bool]$returnNullIfNotFound = $false)
@@ -27,16 +81,15 @@ function GetRegistryValueBool{ param([string]$registryPath, [string]$registryKey
     return $convertedValue
 }
 
-function GetRegistryValue{ param([string]$registryPath, [string]$registryKey)
-    
-    if (!(Test-Path $registryPath))
-    {
-        return $null
-    }
-    
-    $value = (Get-ItemProperty -Path $registryPath -Name $registryKey).$registryKey
-    return $value
+
+function GetHealthyStatus()
+{
+    $healthyStatusValue = GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyIsHealthy
+
+    $val = [Convert]::ToBoolean($healthyStatusValue) #if reg key not found, null is returned and doing a convert tobool makes it a false value. 
+    return $val
 }
+
 
 function AddOrUpdateRegistryValueBool {
   param([string] $regPath, [string] $regKey, [bool]$regKeyBoolValue)
@@ -128,56 +181,6 @@ function FinalizeWarmupResult()
    }
 }
 
-function Log 
-{ 
-  param([string] $dataToLog, [bool]$logToService = $true)
-  
-  $logFile = "c:\MyLog.txt"
-
-  try
-  {   
-    Write-Host $dataToLog
-    if (!(Test-Path -Path $logFile))
-    {
-       Set-Content -Path $logFile -Value ""
-    }
-   
-    Add-Content -Path $logFile -Value "$(Get-Date) $dataToLog `n"
-    
-    if ($logToService)
-    {
-       try
-       {
-         $IPInfo = Get-NetIPAddress -AddressFamily IPv4 -AddressState Preferred
-         $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
-         $machineInfo = "$env:COMPUTERNAME, $IPInfo"
-         $params = @{"data"="$(Get-Date)- $machineInfo >>> $dataToLog"}
-         Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
-       }
-       catch
-       {
-         Write-Host "Unable to call webservice to log: $_"
-         Add-Content -Path $logFile -Value "Unable to call webservice to log: $_"
-       }
-    }
-   }
-   catch
-   {
-    try
-    {
-     $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
-     $params = @{"data"="Exception in log: $_"}
-     Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
-     }
-     catch
-     {
-        Write-Host $_
-     }
-
-      Write-Host $_
-      exit -200
-   }
-}
 
 function IsCosmosDbEmulatorRunning([string] $source)
 {
