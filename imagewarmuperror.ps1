@@ -141,10 +141,21 @@ function GetPreviousHealthResult{ param([bool]$returnNullIfKeyNotFound = $false)
 function IsFirstWarmupRun()
 {
     #Null should indicate yes, first warmup is running
-    Log -dataToLog "IsFirstWarmuprun..."
+    Log -dataToLog "Begin IsFirstWarmuprun..."
     $warmupRegKeyFound = GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
     
-    if ($warmupRegKeyFound -eq $null) { Log -dataToLog "warmupRegKeyFound is null but returning true" return $true } else { Log -dataToLog "warmupRegKeyFound is NOT null so returning false" return $false }
+    if ($warmupRegKeyFound -eq $null) 
+    { 
+        Log -dataToLog "warmupRegKeyFound is null but returning true" 
+        Log -dataToLog "End IsFirstWarmuprun..."
+        return $true 
+    } 
+    else 
+    { 
+        Log -dataToLog "warmupRegKeyFound is NOT null so returning false" 
+        Log -dataToLog "End IsFirstWarmuprun..."
+        return $false 
+    }
     #We return false even if a key is found because we care, at this point, if the key exists or not. A non existant key == this is first time its running.
 }
 
