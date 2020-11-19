@@ -1,16 +1,140 @@
-
-[bool] $isHealthy = $true
 [bool] $lastReturnValueForCosmosDbEmulatorRunning = $false
-$HealthyLogFile = "c:\Healthy.txt"
-$UnhealthyLogFile = "c:\Unhealthy.txt"
-$logFile = "c:\MyLog.txt"
 $registryPath = "HKCU:\Software\Microsoft\AzureDevOps\VMSS"
-$regKeyHasWarmupRan = "HasWarmupRan"
+$regKeyIsWarmupRunning = "IsWarmupRunning"
 $regKeyIsHealthy = "IsHealthy"
+
+function AddOrUpdateHealthyStatus { param([bool]$isHealthyVal)
+    AddOrUpdateRegistryValueBool -regPath $registryPath -regKeyName $regKeyIsHealthy -regKeyBoolValue $isHealthyVal
+}
+
+function GetHealthyStatus()
+{
+    $healthyStatusValue = GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyIsHealthy
+
+    $val = [Convert]::ToBoolean($healthyStatusValue) #if reg key not found, null is returned and doing a convert tobool makes it a false value. 
+    return $val
+}
+
+function GetRegistryValueBool{ param([string]$registryPath, [string]$registryKey, [bool]$returnNullIfNotFound = $false)
+   
+    $value = GetRegistryValue -registryPath $registryPath -registryKey $registryKey
+    if ($value -eq $null) 
+    {
+        if ($returnNullIfNotFound -eq $true) { return $null }
+    }
+
+    [bool]$convertedValue = [Convert]::ToBoolean($value)
+    return $convertedValue
+}
+
+function GetRegistryValue{ param([string]$registryPath, [string]$registryKey)
+    
+    if (!(Test-Path $registryPath))
+    {
+        return $null
+    }
+    
+    $value = (Get-ItemProperty -Path $registryPath -Name $registryKey).$registryKey
+    return $value
+}
+
+function AddOrUpdateRegistryValueBool {
+  param([string] $regPath, [string] $regKeyHasWarmupRan, [bool]$regKeyBoolValue)
+
+  [int]$intVal = [Convert]::ToInt32($regKeyBoolValue)
+
+  if (!(Test-Path $regPath))
+  {
+    New-Item -Path $regPath -Force | Out-Null
+  }
+  
+  New-ItemProperty -Path $regPath -Name $regKeyHasWarmupRan -Value $intVal -PropertyType DWORD -Force | Out-Null
+}
+
+function AddOrUpdateWarmupRegistry {
+  param([bool] $isWarmupRunning)
+
+  AddOrUpdateRegistryValueBool -regPath $registryPath -regKeyName $regKeyIsWarmupRunning -regKeyValue $isWarmupRunning
+}
+
+function GetPreviousHealthResult{ param([bool]$returnNullIfKeyNotFound = $false)
+
+   $healthResult = GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyIsHealthy -returnNullIfNotFound $returnNullIfKeyNotFound
+   return $healthResult
+}
+
+function IsFirstWarmupRun()
+{
+    #Null should indicate yes, first warmup is running
+    $warmupRegKeyFound = GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
+    if ($warmupRegKeyFound -eq $null) { return $true } else { return $false }
+    #We return false even if a key is found because we care, at this point, if the key exists or not. A non existant key == this is first time its running.
+}
+
+
+function CheckAndSetWarmupRun()
+{
+    $isFirstWarmupRun = IsFirstWarmupRun
+    if ($isFirstWarmupRun -eq $true)
+    {
+        AddOrUpdateWarmupRegistry -isWarmupRunning $true
+        Log -dataToLog "This is officially the first warmup and setting it to true"
+    }
+    else
+    {
+        Log -dataToLog "Warmup already ran in CheckAndSetupWarmupRun!"
+    }
+}
+
+CheckAndSetWarmupRun
+
+
+function CheckIfWarmupAlreadyRan()
+{
+    # Get reg value
+   $hasRan = GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
+   if ($hasRan -eq $null) { $hasRan = $false }
+
+   Log -dataToLog "Checking if warmup already ran: $hasRan"
+   return $hasRan    
+}
+
+function FinalizeWarmupResult()
+{
+   $HealthyLogFile = "c:\Healthy.txt"
+   $UnhealthyLogFile = "c:\Unhealthy.txt"
+
+   $healthyValue = GetHealthyStatus
+   Log -dataToLog "In FinalizeWarmupResult with isHealthy being: $healthyValue"
+   if ($healthyValue)
+   {
+      if (!(Test-Path -Path $HealthyLogFile))
+      {
+          Set-Content -Path $HealthyLogFile -Value ""
+      }
+    
+      Add-Content -Path $HealthyLogFile -Value "$(Get-Date) Determined all is healthy `n"
+      exit 0
+   }
+   else
+   { 
+      if (!(Test-Path -Path $UnhealthyLogFile))
+      {
+          Set-Content -Path $UnhealthyLogFile -Value ""
+      }
+    
+      Log -dataToLog "Unhealthy..."
+      Add-Content -Path $UnhealthyLogFile -Value "$(Get-Date) Determined all is NOT healthy `n"
+      exit -200
+   }
+}
 
 function Log 
 { 
   param([string] $dataToLog, [bool]$logToService = $true)
+  
+  $logFile = "c:\MyLog.txt"
+
   try
   {   
     Write-Host $dataToLog
@@ -56,156 +180,6 @@ function Log
    }
 }
 
-Log -dataToLog "Logging"
-exit 0
-
-
-function AddOrUpdateHealthyStatus { param([bool]$isHealthyVal)
-    AddOrUpdateRegistryValueBool -regPath $registryPath -regKeyName $regKeyIsHealthy -regKeyBoolValue $isHealthyVal
-}
-
-function GetHealthyStatus()
-{
-    $healthyStatusValue = GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyIsHealthy
-
-    $val = [Convert]::ToBoolean($healthyStatusValue)
-    return $val
-}
-
-function GetRegistryValueBool{ param([string]$registryPath, [string]$registryKey)
-   
-    $value = GetRegistryValue -registryPath $registryPath -registryKey $registryKey
-    if ($value -eq $null) { return $false }
-
-    [bool]$convertedValue = [Convert]::ToBoolean($value)
-    return $convertedValue
-}
-
-function GetRegistryValue{ param([string]$registryPath, [string]$registryKey)
-    
-    if (!(Test-Path $registryPath))
-    {
-        return $null
-    }
-    
-    $value = (Get-ItemProperty -Path $registryPath -Name $registryKey).$registryKey
-    return $value
-}
-
-function AddOrUpdateRegistryValueBool {
-  param([string] $regPath, [string] $regKeyHasWarmupRan, [bool]$regKeyBoolValue)
-
-  [int]$intVal = [Convert]::ToInt32($regKeyBoolValue)
-
-  if (!(Test-Path $regPath))
-  {
-    New-Item -Path $regPath -Force | Out-Null
-  }
-  
-  New-ItemProperty -Path $regPath -Name $regKeyHasWarmupRan -Value $intVal -PropertyType DWORD -Force | Out-Null
-}
-
-function AddOrUpdateWarmupRegistry {
-  param([bool] $hasWarmupRan)
-
-  AddOrUpdateRegistryValueBool -regPath $registryPath -regKeyName $regKeyHasWarmupRan -regKeyValue $hasWarmupRan
-}
-
-function GetPreviousWarmupResult()
-{
-   <#if (Test-Path -Path $HealthyLogFile)
-   {
-      return $true
-   }
-   
-   if (Test-Path -Path $UnhealthyLogFile)
-   {
-      return $false
-   }
-   
-   return $false#> #unknown/for future
-
-   $warmupResult = GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyIsHealthy
-   return $warmupResult
-}
-
-function IsFirstWarmupRun()
-{
-    return GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyHasWarmupRan
-}
-
-
-function CheckAndSetWarmupRun()
-{
-    $isFirstWarmupRun = IsFirstWarmupRun
-    if ($isFirstWarmupRun -eq $false)
-    {
-        AddOrUpdateWarmupRegistry -hasWarmupRan $true
-        Log -dataToLog "This is officially the first warmup and setting it to true"
-    }
-    else
-    {
-        Log -dataToLog "Warmup already ran in CheckAndSetupWarmupRun!"
-    }
-}
-
-CheckAndSetWarmupRun
-
-
-function CheckIfWarmupAlreadyRan()
-{
-   #for now, the only way to determine if it already executed is by checking files on disk that the script already writes.
-   <#if (Test-Path -Path $HealthyLogFile)
-   {
-      return $true
-   }
-   
-   if (Test-Path -Path $UnhealthyLogFile)
-   {
-      return $true
-   }
-   
-   if (Test-Path -Path $logFile)
-   {
-      return $true
-   }
-   
-   return $false #>
-
-   $hasRan = IsFirstWarmupRun
-   Log -dataToLog "Checking if warmup already ran: $hasRan"
-   return $hasRan
-    
-}
-
-function FinalizeWarmupResult()
-{
-   $healthyValue = GetHealthyStatus
-   Log -dataToLog "In FinalizeWarmupResult with isHealthy being: $healthyValue"
-   if ($healthyValue)
-   {
-      if (!(Test-Path -Path $HealthyLogFile))
-      {
-          Set-Content -Path $HealthyLogFile -Value ""
-      }
-    
-      Add-Content -Path $HealthyLogFile -Value "$(Get-Date) Determined all is healthy `n"
-      exit 0
-   }
-   else
-   { 
-      if (!(Test-Path -Path $UnhealthyLogFile))
-      {
-          Set-Content -Path $UnhealthyLogFile -Value ""
-      }
-    
-      Log -dataToLog "Unhealthy..."
-      Add-Content -Path $UnhealthyLogFile -Value "$(Get-Date) Determined all is NOT healthy `n"
-      exit -200
-   }
-}
-
-
 function IsCosmosDbEmulatorRunning([string] $source)
 {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -239,7 +213,7 @@ if (-not (CheckIfWarmupAlreadyRan))
        }
        $Arguments = "/NoExplorer","/NoTelemetry","/DisableRateLimiting","/NoFirewall","/PartitionCount=25","/NoUI","/DataPath=$dataPath"
 
-        # find proc and taskkill. I am dearly sorry Windows for doing this on you....
+        # find proc and taskkill. I am truly dearly sorry Windows for doing this to you....
         try
         {
             Log -dataToLog "Finding cosmosdb emulator related items first and killing it if its running"
@@ -269,6 +243,8 @@ if (-not (CheckIfWarmupAlreadyRan))
        # This is expected to take < 300 seconds.
        $timeoutSeconds = 300
        Log -dataToLog "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
+       
+       [bool]$isHealthy = $false
 
        $stopwatch = [system.diagnostics.stopwatch]::StartNew()
        try
@@ -292,7 +268,7 @@ if (-not (CheckIfWarmupAlreadyRan))
                
           $isHealthy = $lastReturnValueForCosmosDbEmulatorRunning #IsCosmosDbEmulatorRunning -source $Source
           AddOrUpdateHealthyStatus -isHealthyVal $isHealthy
-          if ($isHealth) 
+          if ($isHealthy) 
           {
              Log -dataToLog "All good"
           }
@@ -304,8 +280,7 @@ if (-not (CheckIfWarmupAlreadyRan))
        catch
        {
           $stopwatch.Stop()
-          $isHealthy = $false
-          AddOrUpdateHealthyStatus -isHealthyVal $isHealthy
+          AddOrUpdateHealthyStatus -isHealthyVal $false
           Write-Host $_ 
           $string_err = $_ | Out-String
           Log -dataToLog "$string_err"
@@ -314,8 +289,7 @@ if (-not (CheckIfWarmupAlreadyRan))
    } 
    else 
    { 
-       $isHealthy = $false
-       AddOrUpdateHealthyStatus -isHealthyVal $isHealthy
+       AddOrUpdateHealthyStatus -isHealthyVal $false
        # Ignore Images without Cosmos DB installed
        Log -dataToLog "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."   
    }
@@ -325,16 +299,23 @@ if (-not (CheckIfWarmupAlreadyRan))
 }
 else
 {
-   $previousWarmupValue = GetPreviousWarmupResult
-   Log -dataToLog "Warmup already ran and it's result was: $previousWarmupValue"
-  
-   #Warmup already ran. What was the result? Lets return that result back to the caller.
-   if (-not ($previousWarmupValue))
+   $previousHealthValue = GetPreviousHealthResult -returnNullIfKeyNotFound $true
+   if ($previousHealthValue -eq $null)
    {
-      exit -200 #return non zero exit code
+      Log -dataToLog "Warmup already ran but the health value was null!"
+      exit -201
    }
    else
    {
-      exit 0
+       Log -dataToLog "Warmup already ran and it's result was: $previousHealthValue"
+  
+       if (-not ($previousHealthValue))
+       {
+          exit -200 #return non zero exit code
+       }
+       else
+       {
+          exit 0
+       }
    }
 }
