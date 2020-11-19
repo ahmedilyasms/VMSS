@@ -8,6 +8,7 @@ function Log
   param([string] $dataToLog, [bool]$logToService = $true)
   
   $logFile = "c:\MyLog.txt"
+  $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
 
   try
   {   
@@ -24,7 +25,6 @@ function Log
        try
        {
          $IPInfo = Get-NetIPAddress -AddressFamily IPv4 -AddressState Preferred
-         $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
          $machineInfo = "$env:COMPUTERNAME, $IPInfo"
          $params = @{"data"="$(Get-Date)- $machineInfo >>> $dataToLog"}
          Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
@@ -40,9 +40,8 @@ function Log
    {
     try
     {
-     $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
-     $params = @{"data"="Exception in log: $_"}
-     Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+     $params2 = @{"data"="Exception in log: $_"}
+     Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params2
      }
      catch
      {
@@ -53,7 +52,7 @@ function Log
       exit -200
    }
 }
-
+<#
 function resetreg()
 {
     try
@@ -68,7 +67,7 @@ function resetreg()
 }
 
 resetreg
-Log -dataToLog "Resetregdone"
+Log -dataToLog "Resetregdone"#>
 
 function AddOrUpdateRegistryValueBool {
   param([string] $regPath, [string] $regKey, [bool]$regKeyBoolValue)
@@ -130,7 +129,7 @@ function GetHealthyStatus()
 function AddOrUpdateWarmupRegistry {
   param([bool] $isWarmupRunning)
 
-  AddOrUpdateRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -regKeyValue $isWarmupRunning
+  AddOrUpdateRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -regKeyBoolValue $isWarmupRunning
 }
 
 function GetPreviousHealthResult{ param([bool]$returnNullIfKeyNotFound = $false)
@@ -144,8 +143,8 @@ function IsFirstWarmupRun()
     #Null should indicate yes, first warmup is running
     Log -dataToLog "IsFirstWarmuprun..."
     $warmupRegKeyFound = GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
-    Log -dataToLog "warmupregkeyfound is: $warmupRegKeyFound"
-    if ($warmupRegKeyFound -eq $null) { return $true } else { return $false }
+    
+    if ($warmupRegKeyFound -eq $null) { Log -dataToLog "warmupRegKeyFound is null but returning true" return $true } else { Log -dataToLog "warmupRegKeyFound is NOT null so returning false" return $false }
     #We return false even if a key is found because we care, at this point, if the key exists or not. A non existant key == this is first time its running.
 }
 
