@@ -1,3 +1,6 @@
+Log -dataToLog "Logging"
+exit 0
+
 [bool] $isHealthy = $true
 [bool] $lastReturnValueForCosmosDbEmulatorRunning = $false
 $HealthyLogFile = "c:\Healthy.txt"
