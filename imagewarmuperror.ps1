@@ -203,7 +203,7 @@ function IsCosmosDbEmulatorRunning([string] $source)
 
 CheckAndSetWarmupRun
 
-if (-not (CheckIfWarmupAlreadyRan)) #Consider changing to use IsFirstWarmup? That will return true if key not found in registry. False if key found which means it's already ran
+if (CheckIfWarmupAlreadyRan -eq $false) #Consider changing to use IsFirstWarmup? That will return true if key not found in registry. False if key found which means it's already ran
 {
    $Source = "C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe"
    if (Test-Path $Source) 
