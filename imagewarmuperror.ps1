@@ -54,6 +54,21 @@ function Log
    }
 }
 
+function resetreg()
+{
+try{
+Remove-ItemProperty -Path $registryPath -Name $regKeyIsWarmupRunning
+Remove-ItemProperty -Path $registryPath -Name $regKeyIsHealthy
+}
+catch
+{
+Log -dataToLog $_
+}
+}
+
+resetreg
+Log -dataToLog "Resetregdone"
+exit -400
 
 function AddOrUpdateRegistryValueBool {
   param([string] $regPath, [string] $regKey, [bool]$regKeyBoolValue)
@@ -90,7 +105,11 @@ function GetRegistryValueBool{ param([string]$registryPath, [string]$registryKey
     Log -dataToLog "Before eval value: GetRegValBool $registryPath $registryKey : Value is: $value"
     if ($value -eq $null) 
     {
-        if ($returnNullIfNotFound -eq $true) { return $null }
+        if ($returnNullIfNotFound -eq $true) 
+        { 
+            Log -dataToLog "GetRegistryValueBool: value is null and returnNullIfNotFound is true. Returning null"
+            return $null 
+        }
     }
 
     [bool]$convertedValue = [Convert]::ToBoolean($value)
