@@ -2,6 +2,7 @@
 $registryPath = "HKCU:\Software\Microsoft\AzureDevOps\VMSS"
 $regKeyIsWarmupRunning = "IsWarmupRunning"
 $regKeyIsHealthy = "IsHealthy"
+$logID = [Guid]::NewGuid()
 
 function Log 
 { 
@@ -26,7 +27,7 @@ function Log
        {
          $IPInfo = Get-NetIPAddress -AddressFamily IPv4 -AddressState Preferred
          $machineInfo = "$env:COMPUTERNAME, $IPInfo"
-         $params = @{"data"="$(Get-Date)- $machineInfo >>> $dataToLog"}
+         $params = @{"data"="LogID: $logID $(Get-Date)- $machineInfo >>> $dataToLog"}
          Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
        }
        catch
