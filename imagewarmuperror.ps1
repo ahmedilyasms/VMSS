@@ -56,19 +56,19 @@ function Log
 
 function resetreg()
 {
-try{
-Remove-ItemProperty -Path $registryPath -Name $regKeyIsWarmupRunning
-Remove-ItemProperty -Path $registryPath -Name $regKeyIsHealthy
-}
-catch
-{
-Log -dataToLog $_
-}
+    try
+    {
+        Remove-ItemProperty -Path $registryPath -Name $regKeyIsWarmupRunning
+        Remove-ItemProperty -Path $registryPath -Name $regKeyIsHealthy
+    }
+    catch
+    {
+        Log -dataToLog $_
+    }
 }
 
 resetreg
 Log -dataToLog "Resetregdone"
-exit -400
 
 function AddOrUpdateRegistryValueBool {
   param([string] $regPath, [string] $regKey, [bool]$regKeyBoolValue)
