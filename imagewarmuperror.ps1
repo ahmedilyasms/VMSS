@@ -39,7 +39,7 @@ function GetRegistryValue{ param([string]$registryPath, [string]$registryKey)
 }
 
 function AddOrUpdateRegistryValueBool {
-  param([string] $regPath, [string] $regKeyHasWarmupRan, [bool]$regKeyBoolValue)
+  param([string] $regPath, [string] $regKey, [bool]$regKeyBoolValue)
 
   [int]$intVal = [Convert]::ToInt32($regKeyBoolValue)
 
@@ -48,13 +48,14 @@ function AddOrUpdateRegistryValueBool {
     New-Item -Path $regPath -Force | Out-Null
   }
   
-  New-ItemProperty -Path $regPath -Name $regKeyHasWarmupRan -Value $intVal -PropertyType DWORD -Force | Out-Null
+  New-ItemProperty -Path $regPath -Name $regKey -Value $intVal -PropertyType DWORD -Force | Out-Null
+  Log -dataToLog "Wrote Registry: $regKey : $regKeyBoolValue"
 }
 
 function AddOrUpdateWarmupRegistry {
   param([bool] $isWarmupRunning)
 
-  AddOrUpdateRegistryValueBool -regPath $registryPath -regKeyName $regKeyIsWarmupRunning -regKeyValue $isWarmupRunning
+  AddOrUpdateRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -regKeyValue $isWarmupRunning
 }
 
 function GetPreviousHealthResult{ param([bool]$returnNullIfKeyNotFound = $false)
