@@ -56,7 +56,7 @@ function Log
    }
 }
 
-Log -dataToLog "Logging"-
+Log -dataToLog "Logging"
 exit 0
 
 
