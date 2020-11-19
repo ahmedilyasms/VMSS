@@ -120,6 +120,7 @@ function GetRegistryValueBool{ param([string]$registryPath, [string]$registryKey
 function GetHealthyStatus()
 {
     $healthyStatusValue = GetRegistryValueBool -registryPath $registryPath -registryKey $regKeyIsHealthy
+    Log -dataToLog "GetHealthyStatus. Value is: $healthyStatusValue"
 
     $val = [Convert]::ToBoolean($healthyStatusValue) #if reg key not found, null is returned and doing a convert tobool makes it a false value. 
     return $val
@@ -189,9 +190,16 @@ function FinalizeWarmupResult()
 {
    $HealthyLogFile = "c:\Healthy.txt"
    $UnhealthyLogFile = "c:\Unhealthy.txt"
+   Log -dataToLog "In FinalizeWarmupResult"
 
    $healthyValue = GetHealthyStatus
    Log -dataToLog "In FinalizeWarmupResult with isHealthy being: $healthyValue"
+   if ($healthyValue -eq $null)
+   {
+    Log -dataToLog "Yikes!"
+    exit -400
+   }
+
    if ($healthyValue)
    {
       if (!(Test-Path -Path $HealthyLogFile))
