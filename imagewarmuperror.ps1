@@ -1,3 +1,13 @@
+
+[bool] $isHealthy = $true
+[bool] $lastReturnValueForCosmosDbEmulatorRunning = $false
+$HealthyLogFile = "c:\Healthy.txt"
+$UnhealthyLogFile = "c:\Unhealthy.txt"
+$logFile = "c:\MyLog.txt"
+$registryPath = "HKCU:\Software\Microsoft\AzureDevOps\VMSS"
+$regKeyHasWarmupRan = "HasWarmupRan"
+$regKeyIsHealthy = "IsHealthy"
+
 function Log 
 { 
   param([string] $dataToLog, [bool]$logToService = $true)
@@ -49,14 +59,6 @@ function Log
 Log -dataToLog "Logging"-
 exit 0
 
-[bool] $isHealthy = $true
-[bool] $lastReturnValueForCosmosDbEmulatorRunning = $false
-$HealthyLogFile = "c:\Healthy.txt"
-$UnhealthyLogFile = "c:\Unhealthy.txt"
-$logFile = "c:\MyLog.txt"
-$registryPath = "HKCU:\Software\Microsoft\AzureDevOps\VMSS"
-$regKeyHasWarmupRan = "HasWarmupRan"
-$regKeyIsHealthy = "IsHealthy"
 
 function AddOrUpdateHealthyStatus { param([bool]$isHealthyVal)
     AddOrUpdateRegistryValueBool -regPath $registryPath -regKeyName $regKeyIsHealthy -regKeyBoolValue $isHealthyVal
