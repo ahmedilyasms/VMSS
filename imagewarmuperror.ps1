@@ -217,7 +217,7 @@ function IsCosmosDbEmulatorRunning([string] $source)
 $warmupAlreadyRan = CheckIfWarmupAlreadyRan
 Log -dataToLog "Now checking if warmup already ran. Value is: [$warmupAlreadyRan]"
 
-if ($warmupAlreadyRan -eq $false)
+if (-not (CheckIfWarmupAlreadyRan))
 {
     AddOrUpdateWarmupRunningRegistry -isWarmupRunning $true
     $warmupAlreadyRan = $true
