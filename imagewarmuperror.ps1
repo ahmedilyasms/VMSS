@@ -4,7 +4,7 @@ $HealthyLogFile = "c:\Healthy.txt"
 $UnhealthyLogFile = "c:\Unhealthy.txt"
 $logFile = "c:\MyLog.txt"
 
-$registryPath = "HKLM:\Software\Microsoft\AzureDevOps\VMSS\MSEng"
+$registryPath = "HKCU:\Software\Microsoft\AzureDevOps\VMSS\MSEng"
 $regKeyIsWarmupRunning = "IsWarmupRunning"
 $regKeyIsHealthy = "IsHealthy"
 $regKeyIsFirstRun = "IsFirstRun"
@@ -55,6 +55,7 @@ function AddOrUpdateRegistryValueBool { param([string] $regPath, [string] $regKe
   [int]$intVal = [Convert]::ToInt32($regKeyBoolValue)
   if (!(Test-Path $regPath))
   {
+    Log -dataToLog "Regpath did not exist so creating"
     New-Item -Path $regPath -Force | Out-Null
   }
   
@@ -93,18 +94,15 @@ function GetRegistryValueBool{ param([string]$regPath, [string]$regKey, [bool]$r
 }
 
 
-function AddOrUpdateWarmupRunningRegistry {
-  param([bool] $isWarmupRunning)
+function AddOrUpdateWarmupRunningRegistry { param([bool] $isWarmupRunning)
   AddOrUpdateRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -regKeyBoolValue $isWarmupRunning
 }
 
-function AddOrUpdateFirstRunRegistry {
-  param([bool] $isFirstRun)
+function AddOrUpdateFirstRunRegistry { param([bool] $isFirstRun)
   AddOrUpdateRegistryValueBool -regPath $registryPath -regKey $regKeyIsFirstRun -regKeyBoolValue $isFirstRun
 }
 
-function AddOrUpdateIsHealthyRegistry {
-  param([bool] $isHealthy)
+function AddOrUpdateIsHealthyRegistry { param([bool] $isHealthy)
   AddOrUpdateRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -regKeyBoolValue $isHealthy
 }
 
