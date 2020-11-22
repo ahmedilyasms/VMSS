@@ -76,7 +76,7 @@ function GetRegistryValue{ param([string]$regPath, [string]$regKey)
 
 function GetRegistryValueBool{ param([string]$regPath, [string]$regKey, [bool]$returnNullIfNotFound = $false)
    
-    $value = GetRegistryValue -registryPath $regPath -registryKey $regKey
+    $value = GetRegistryValue -regPath $regPath -regKey $regKey
     Log -dataToLog "Before eval value: GetRegValBool $regPath $regKey : Value is: $value"
     if ($value -eq $null) 
     {
