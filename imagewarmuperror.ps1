@@ -49,6 +49,7 @@ function Log
      Write-Host $_      
    }
 }
+
 function AddOrUpdateRegistryValueBool { param([string] $regPath, [string] $regKey, [bool]$regKeyBoolValue)
 
   Log -dataToLog "In AddOrUpdateRegistryValueBool RegPath: $regPath, regKey: $regKey, regKeyBool: $regKeyBoolValue"
@@ -86,7 +87,7 @@ function GetRegistryValue{ param([string]$regPath, [string]$regKey)
 function GetRegistryValueBool{ param([string]$regPath, [string]$regKey, [bool]$returnNullIfNotFound = $false)
    
     $value = GetRegistryValue -regPath $regPath -regKey $regKey
-    if ([string]::IsNullOrWhiteSpace($val))
+    if ([string]::IsNullOrWhiteSpace($value))
     {
         if ($returnNullIfNotFound -eq $true) 
         { 
@@ -96,16 +97,14 @@ function GetRegistryValueBool{ param([string]$regPath, [string]$regKey, [bool]$r
     }
 
     [bool]$convertedValue = [Convert]::ToBoolean($value)
-    Log -dataToLog "GetRegValBool $regPath $regKey : Value is: $value and convertedval is $convertedValue"
+    Log -dataToLog "GetRegValBool $regPath $regKey : Value is: [$value] and convertedval is [$convertedValue]"
     return $convertedValue
 }
 
 
 function AddOrUpdateWarmupRunningRegistry { param([bool] $isWarmupRunning)
 
-  Log -dataToLog "In AddOrUpdateWarmupRunningRegistry"
   AddOrUpdateRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -regKeyBoolValue $isWarmupRunning
-  Log -dataToLog "Finished AddOrUpdateWarmupRunningRegistry"
 }
 
 function AddOrUpdateFirstRunRegistry { param([bool] $isFirstRun)
@@ -125,19 +124,20 @@ function Initialize()
     if ([string]::IsNullOrWhiteSpace($val))
     {
         Log -dataToLog "WarmupKeyRunning is null so now adding to reg"
-        AddOrUpdateWarmupRunningRegistry -isWarmupRunning $false        
-        Log -dataToLog "WarmupKeyRunning added to reg"
+        AddOrUpdateWarmupRunningRegistry -isWarmupRunning $false     
     }
 
-    $val = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
+    $val = GetRegistryValue -regPath $registryPath -regKey $regKeyIsHealthy
     if ([string]::IsNullOrWhiteSpace($val))
     {
+        Log -dataToLog "regKeyIsHealthy is null so now adding to reg"
         AddOrUpdateIsHealthyRegistry -isHealthy $false
     }
 
-    $val = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsFirstRun -returnNullIfNotFound $true
+    $val = GetRegistryValue -regPath $registryPath -regKey $regKeyIsFirstRun
     if ([string]::IsNullOrWhiteSpace($val))
     {
+        Log -dataToLog "regKeyIsFirstRun is null so now adding to reg"
         AddOrUpdateFirstRunRegistry -isFirstRun $true
     }
 }
@@ -148,7 +148,7 @@ $tmpWarmRunning = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsW
 $tmpIsFirstRun = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsFirstRun -returnNullIfNotFound $true
 $tmpHealthy = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
 
-Log -dataToLog "Initialize ran. Values: WarmupRunning $tmpWarmRunning, firstRun $tmpIsFirstRun, Healthy: $tmpHealthy"
+Log -dataToLog "Initialize ran. Values: WarmupRunning [$tmpWarmRunning], firstRun [$tmpIsFirstRun], Healthy: [$tmpHealthy]"
 
 function GetPreviousWarmupResult()
 {
@@ -166,7 +166,7 @@ function CheckIfWarmupAlreadyRan()
 {
     $isWarmupRunning = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning
     
-    Log -dataToLog "In CheckIfWarmupAlreadyRan. Value is $isWarmupRunning"
+    Log -dataToLog "In CheckIfWarmupAlreadyRan. Value is [$isWarmupRunning]"
 
     return $isWarmupRunning
 }
@@ -178,7 +178,7 @@ function FinalizeWarmupResult()
     AddOrUpdateFirstRunRegistry -isFirstRun $false
 
     $healthyValue = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy
-    Log -dataToLog "In FinalizeWarmupResult with isHealthy being: $healthyValue"
+    Log -dataToLog "In FinalizeWarmupResult with isHealthy being: [$healthyValue]"
     if ($healthyValue -eq $true)
     {    
         Log -dataToLog "$(Get-Date) Determined all is healthy `n"
@@ -214,7 +214,7 @@ function IsCosmosDbEmulatorRunning([string] $source)
 }
 
 $warmupAlreadyRan = CheckIfWarmupAlreadyRan
-Log -dataToLog "Now checking if warmup already ran. Value is: $warmupAlreadyRan"
+Log -dataToLog "Now checking if warmup already ran. Value is: [$warmupAlreadyRan]"
 
 if ($warmupAlreadyRan -eq $false)
 {
