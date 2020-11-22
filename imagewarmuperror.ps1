@@ -55,7 +55,7 @@ try
 {
   $theExitCode = (Start-Process -FilePath $fullPath -PassThru -Wait).ExitCode
   Log -dataToLog "Exit code is: $theExitCode"
-  return $theExitCode
+  exit $theExitCode
 }
 catch
 {
