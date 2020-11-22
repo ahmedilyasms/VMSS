@@ -132,7 +132,13 @@ function Initialize()
     }
 }
 
+Log -dataToLog "initializing!"
 Initialize
+$tmpWarmRunning = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
+$tmpIsFirstRun = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsFirstRun -returnNullIfNotFound $true
+$tmpHealthy = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
+
+Log -dataToLog "Initialize ran. Values: WarmupRunning $tmpWarmRunning, firstRun $tmpIsFirstRun, Healthy: $tmpHealthy"
 
 
 function GetPreviousWarmupResult()
@@ -198,8 +204,10 @@ function IsCosmosDbEmulatorRunning([string] $source)
     return $false
 }
 
-   
-if (-not (CheckIfWarmupAlreadyRan))
+$warmupAlreadyRan = CheckIfWarmupAlreadyRan
+Log -dataToLog "Now checking if warmup already ran. Value is: $warmupAlreadyRan"
+
+if ($warmupAlreadyRan -eq $false)
 {
     AddOrUpdateWarmupRunningRegistry -isWarmupRunning $true
 
@@ -301,6 +309,7 @@ if (-not (CheckIfWarmupAlreadyRan))
 }
 else
 {
+    Log -dataToLog "Warmup already ran!!"
    #Warmup already ran. What was the result? Lets return that result back to the caller.
    if (-not (GetPreviousWarmupResult))
    {
