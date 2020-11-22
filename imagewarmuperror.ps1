@@ -218,8 +218,8 @@ Log -dataToLog "Now checking if warmup already ran. Value is: [$warmupAlreadyRan
 
 if ($warmupAlreadyRan -eq $false)
 {
-    #AddOrUpdateWarmupRunningRegistry -isWarmupRunning $true
-
+    AddOrUpdateWarmupRunningRegistry -isWarmupRunning $true
+    $warmupAlreadyRan = $true
     $Source = "C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe"
     if (Test-Path $Source) 
     {
