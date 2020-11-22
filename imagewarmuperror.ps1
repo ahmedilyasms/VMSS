@@ -52,6 +52,8 @@ function Log
 
 function AddOrUpdateRegistryValueBool { param([string] $regPath, [string] $regKey, [bool]$regKeyBoolValue)
 
+  Log -dataToLog "In AddOrUpdateRegistryValueBool RegPath: $regPath, regKey: $regKey, regKeyBool: $regKeyBoolValue"
+
   [int]$intVal = [Convert]::ToInt32($regKeyBoolValue)
   if (!(Test-Path $regPath))
   {
@@ -69,16 +71,22 @@ function GetRegistryValue{ param([string]$regPath, [string]$regKey)
     {
         return $null
     }
-    
-    $value = (Get-ItemProperty -Path $regPath -Name $regKey).$regKey
-    return $value
+
+    try
+    {
+        $value = (Get-ItemProperty -Path $regPath -Name $regKey -ErrorAction Stop).$regKey
+        return $value
+    }
+    catch
+    {
+        return $null
+    }
 }
 
 
 function GetRegistryValueBool{ param([string]$regPath, [string]$regKey, [bool]$returnNullIfNotFound = $false)
    
     $value = GetRegistryValue -regPath $regPath -regKey $regKey
-    Log -dataToLog "Before eval value: GetRegValBool $regPath $regKey : Value is: $value"
     if ($value -eq $null) 
     {
         if ($returnNullIfNotFound -eq $true) 
