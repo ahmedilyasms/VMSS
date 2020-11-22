@@ -49,7 +49,6 @@ function Log
      Write-Host $_      
    }
 }
-
 function AddOrUpdateRegistryValueBool { param([string] $regPath, [string] $regKey, [bool]$regKeyBoolValue)
 
   Log -dataToLog "In AddOrUpdateRegistryValueBool RegPath: $regPath, regKey: $regKey, regKeyBool: $regKeyBoolValue"
@@ -62,7 +61,7 @@ function AddOrUpdateRegistryValueBool { param([string] $regPath, [string] $regKe
   
   [int]$intVal = [Convert]::ToInt32($regKeyBoolValue)
   New-ItemProperty -Path $regPath -Name $regKey -Value $intVal -PropertyType DWORD -Force | Out-Null
-  Log -dataToLog "Wrote Registry: $regPath $regKey : $intVal (value maps to $regKeyBoolValue"
+  Log -dataToLog "Wrote Registry: $regPath $regKey : $intVal (value maps to $regKeyBoolValue)"
 }
 
 function GetRegistryValue{ param([string]$regPath, [string]$regKey)
@@ -87,7 +86,7 @@ function GetRegistryValue{ param([string]$regPath, [string]$regKey)
 function GetRegistryValueBool{ param([string]$regPath, [string]$regKey, [bool]$returnNullIfNotFound = $false)
    
     $value = GetRegistryValue -regPath $regPath -regKey $regKey
-    if ($value -eq $null) 
+    if ([string]::IsNullOrWhiteSpace($val))
     {
         if ($returnNullIfNotFound -eq $true) 
         { 
@@ -121,6 +120,7 @@ function AddOrUpdateIsHealthyRegistry { param([bool] $isHealthy)
 function Initialize()
 {
     #Create regkeys with default values if they do not exist
+    
     $val = GetRegistryValue -regPath $registryPath -regKey $regKeyIsWarmupRunning #GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
     if ([string]::IsNullOrWhiteSpace($val))
     {
@@ -128,20 +128,15 @@ function Initialize()
         AddOrUpdateWarmupRunningRegistry -isWarmupRunning $false        
         Log -dataToLog "WarmupKeyRunning added to reg"
     }
-    else
-    {
-        Log -dataToLog "it aint null so what happened?!. Value is: [$val]"
-        exit -431
-    }
-    
+
     $val = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
-    if ($val -eq $null)
+    if ([string]::IsNullOrWhiteSpace($val))
     {
         AddOrUpdateIsHealthyRegistry -isHealthy $false
     }
 
     $val = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsFirstRun -returnNullIfNotFound $true
-    if ($val -eq $null)
+    if ([string]::IsNullOrWhiteSpace($val))
     {
         AddOrUpdateFirstRunRegistry -isFirstRun $true
     }
@@ -154,12 +149,11 @@ $tmpIsFirstRun = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsFi
 $tmpHealthy = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
 
 Log -dataToLog "Initialize ran. Values: WarmupRunning $tmpWarmRunning, firstRun $tmpIsFirstRun, Healthy: $tmpHealthy"
-exit -300
 
 function GetPreviousWarmupResult()
 {
     $result = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
-    if ($result -eq $null)
+    if ([string]::IsNullOrWhiteSpace($result))
     {
         Log -dataToLog "PreviousWarmup never ran"
         $result = $false
