@@ -129,7 +129,12 @@ function Initialize()
         AddOrUpdateWarmupRunningRegistry -isWarmupRunning $false        
         Log -dataToLog "WarmupKeyRunning added to reg"
     }
-
+    else
+    {
+        Log -dataToLog "it aint null so what happened?!"
+        exit -431
+    }
+    
     $val = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
     if ($val -eq $null)
     {
