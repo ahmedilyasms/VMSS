@@ -54,15 +54,15 @@ function AddOrUpdateRegistryValueBool { param([string] $regPath, [string] $regKe
 
   Log -dataToLog "In AddOrUpdateRegistryValueBool RegPath: $regPath, regKey: $regKey, regKeyBool: $regKeyBoolValue"
 
-  [int]$intVal = [Convert]::ToInt32($regKeyBoolValue)
   if (!(Test-Path $regPath))
   {
     Log -dataToLog "Regpath did not exist so creating"
     New-Item -Path $regPath -Force | Out-Null
   }
   
+  [int]$intVal = [Convert]::ToInt32($regKeyBoolValue)
   New-ItemProperty -Path $regPath -Name $regKey -Value $intVal -PropertyType DWORD -Force | Out-Null
-  Log -dataToLog "Wrote Registry: $regKey : $regKeyBoolValue"
+  Log -dataToLog "Wrote Registry: $regPath $regKey : $intVal (value maps to $regKeyBoolValue"
 }
 
 function GetRegistryValue{ param([string]$regPath, [string]$regKey)
@@ -103,7 +103,10 @@ function GetRegistryValueBool{ param([string]$regPath, [string]$regKey, [bool]$r
 
 
 function AddOrUpdateWarmupRunningRegistry { param([bool] $isWarmupRunning)
+
+  Log -dataToLog "In AddOrUpdateWarmupRunningRegistry"
   AddOrUpdateRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -regKeyBoolValue $isWarmupRunning
+  Log -dataToLog "Finished AddOrUpdateWarmupRunningRegistry"
 }
 
 function AddOrUpdateFirstRunRegistry { param([bool] $isFirstRun)
@@ -122,7 +125,9 @@ function Initialize()
     $val = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
     if ($val -eq $null)
     {
-        AddOrUpdateWarmupRunningRegistry -isWarmupRunning $false
+        Log -dataToLog "WarmupKeyRunning is null so now adding to reg"
+        AddOrUpdateWarmupRunningRegistry -isWarmupRunning $false        
+        Log -dataToLog "WarmupKeyRunning added to reg"
     }
 
     $val = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
@@ -145,7 +150,7 @@ $tmpIsFirstRun = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsFi
 $tmpHealthy = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
 
 Log -dataToLog "Initialize ran. Values: WarmupRunning $tmpWarmRunning, firstRun $tmpIsFirstRun, Healthy: $tmpHealthy"
-
+exit -300
 
 function GetPreviousWarmupResult()
 {
