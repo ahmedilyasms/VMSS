@@ -121,8 +121,7 @@ function AddOrUpdateIsHealthyRegistry { param([bool] $isHealthy)
 function Initialize()
 {
     #Create regkeys with default values if they do not exist
-    
-    $val = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
+    $val = GetRegistryValue -regPath $registryPath -regKey $regKeyIsWarmupRunning #GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
     if ([string]::IsNullOrWhiteSpace($val))
     {
         Log -dataToLog "WarmupKeyRunning is null so now adding to reg"
