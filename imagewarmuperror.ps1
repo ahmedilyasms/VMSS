@@ -32,6 +32,7 @@ function Log
          $machineInfo = "$env:COMPUTERNAME, $IPInfo"
          $params = @{"data"="$(Get-Date)- $machineInfo >>> $dataToLog"}
          Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+         Start-Sleep -Seconds 6
        }
        catch
        {
@@ -218,8 +219,8 @@ Log -dataToLog "Now checking if warmup already ran. Value is: [$warmupAlreadyRan
 
 if ($warmupAlreadyRan -eq $false)
 {
-    #AddOrUpdateWarmupRunningRegistry -isWarmupRunning $true
-
+    AddOrUpdateWarmupRunningRegistry -isWarmupRunning $true
+    $warmupAlreadyRan = $true
     $Source = "C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe"
     if (Test-Path $Source) 
     {
