@@ -50,7 +50,14 @@ if(Test-Path $extractLocation) {
 [System.IO.Compression.ZipFile]::ExtractToDirectory($downloadLocation, $extractLocation)
 
 Log -dataToLog "Successfully unzipped warmup checker to location $extractLocation, Now running the checker"
-
-$theExitCode = (Start-Process -FilePath '$extractLocation\VMWarmupCheck.exe' -PassThru -Wait).ExitCode
-Log -dataToLog "Exit code is: $theExitCode"
-return $theExitCode
+$fullPath = [IO.Path]::Combine($extractLocation, 'VMWarmupCheck.exe')
+try
+{
+  $theExitCode = (Start-Process -FilePath $fullPath -PassThru -Wait).ExitCode
+  Log -dataToLog "Exit code is: $theExitCode"
+  return $theExitCode
+}
+catch
+{
+  Log -dataToLog "$_"
+}
