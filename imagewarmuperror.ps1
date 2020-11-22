@@ -122,7 +122,7 @@ function Initialize()
 {
     #Create regkeys with default values if they do not exist
     $val = GetRegistryValue -regPath $registryPath -regKey $regKeyIsWarmupRunning #GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
-    if ([string]::IsNullOrWhiteSpace($val))
+    if ($val -eq $true)
     {
         Log -dataToLog "WarmupKeyRunning is null so now adding to reg"
         AddOrUpdateWarmupRunningRegistry -isWarmupRunning $false        
