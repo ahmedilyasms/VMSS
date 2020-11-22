@@ -32,6 +32,7 @@ function Log
          $machineInfo = "$env:COMPUTERNAME, $IPInfo"
          $params = @{"data"="$(Get-Date)- $machineInfo >>> $dataToLog"}
          Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+         Start-Sleep -Seconds 6
        }
        catch
        {
