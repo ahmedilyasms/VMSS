@@ -53,9 +53,11 @@ $fullPath = [IO.Path]::Combine($extractLocation, 'VMWarmupCheck.exe')
 try
 {
   $theExitCode = (Start-Process -FilePath $fullPath -PassThru -Wait).ExitCode 
+  Log -dataToLog "LASTEXITCODE is $LASTEXITCODE and theExitCode is $theExitCode"
   exit $theExitCode
 }
 catch
 {
+ Log -dataToLog "$_"
  exit -500
 }
