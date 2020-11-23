@@ -17,7 +17,6 @@ function Log
        catch
        {
          Write-Host "Unable to call webservice to log: $_"
-         Add-Content -Path $logFile -Value "Unable to call webservice to log: $_"
        }
     }
    }
@@ -54,10 +53,48 @@ $fullPath = [IO.Path]::Combine($extractLocation, 'VMWarmupCheck.exe')
 try
 {
   $theExitCode = (Start-Process -FilePath $fullPath -PassThru -Wait).ExitCode
-  Log -dataToLog "Exit code is: $theExitCode"
+  $Title = "From VMSS " + (Get-Date)
+$to = "ahmeda86@hotmail.com"
+
+$message = New-Object System.Net.Mail.MailMessage
+$message.subject = $Title
+$message.to.add($to)
+$message.from = "NoReply@sandlersoftware.net"
+$message.Body = "Done"
+
+$SMTPServer = "smtp.office365.com"
+$SMTPPort = "587"
+$Username = "smtpsender@sandlersoftware.net"
+$Password = 'P@$$w0rd'
+
+$smtp = New-Object System.Net.Mail.SmtpClient($SMTPServer);
+$smtp.UseDefaultCredentials = $false
+$smtp.Credentials = New-Object System.Net.NetworkCredential($Username, $Password);
+$smtp.Port = $SMTPPort
+$smtp.EnableSSL = $true
+$smtp.send($message)
   exit $theExitCode
 }
 catch
 {
-  Log -dataToLog "$_"
+  $Title = "From VMSS " + (Get-Date)
+$to = "ahmeda86@hotmail.com"
+
+$message = New-Object System.Net.Mail.MailMessage
+$message.subject = $Title
+$message.to.add($to)
+$message.from = "NoReply@sandlersoftware.net"
+$message.Body = "$_"
+
+$SMTPServer = "smtp.office365.com"
+$SMTPPort = "587"
+$Username = "smtpsender@sandlersoftware.net"
+$Password = 'P@$$w0rd'
+
+$smtp = New-Object System.Net.Mail.SmtpClient($SMTPServer);
+$smtp.UseDefaultCredentials = $false
+$smtp.Credentials = New-Object System.Net.NetworkCredential($Username, $Password);
+$smtp.Port = $SMTPPort
+$smtp.EnableSSL = $true
+$smtp.send($message)
 }
