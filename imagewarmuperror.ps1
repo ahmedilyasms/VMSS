@@ -30,6 +30,8 @@ function Log
    }
 }
 
+$v = "$(Get-Host | Select-Object Version)"
+Log -dataToLog "$v"
 
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 $urlToDownload = "https://github.com/ahmedilyasms/VMSS/raw/master/VMWarmupCheck.zip"
