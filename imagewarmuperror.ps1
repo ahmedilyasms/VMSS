@@ -52,7 +52,7 @@ Log -dataToLog "Successfully unzipped warmup checker to location $extractLocatio
 $fullPath = [IO.Path]::Combine($extractLocation, 'VMWarmupCheck.exe')
 try
 {
-  $theExitCode = (Start-Process -FilePath $fullPath -PassThru -Wait).ExitCode 
+  $theExitCode = (Start-Process -FilePath $fullPath -Wait).ExitCode 
   Log -dataToLog "LASTEXITCODE is $LASTEXITCODE and theExitCode is $theExitCode"
   exit $theExitCode
 }
