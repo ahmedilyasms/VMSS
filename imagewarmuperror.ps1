@@ -12,7 +12,7 @@ function Log
   param([string] $dataToLog, [bool]$logToService = $true)
   try
   {   
-    Write-Host $dataToLog
+    #Write-Host $dataToLog
     
     if ($logToService)
     {
