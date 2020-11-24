@@ -26,7 +26,7 @@ function Log
        }
        catch
        {
-         Write-Host "Unable to call webservice to log: $_"
+         #Write-Host "Unable to call webservice to log: $_"
        }
     }
    }
@@ -36,7 +36,7 @@ function Log
      $params = @{"data"="Exception in log: $_"}
      Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
      
-     Write-Host $_      
+     #Write-Host $_      
    }
 }
 
@@ -226,7 +226,7 @@ elseif ($warmupAlreadyRan -eq $null)
 }
 else
 {
-    Log -dataToLog "PreCheck - Warmupalreadyran is NO IDEA"
+    Log -dataToLog "PreCheck - Warmupalreadyran is NO IDEA: [$warmupAlreadyRun.ToString()]"
 }
 
 if ($warmupAlreadyRan -eq $false)
