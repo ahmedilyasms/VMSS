@@ -226,7 +226,7 @@ elseif ($warmupAlreadyRan -eq $null)
 }
 else
 {
-    Log -dataToLog "PreCheck - Warmupalreadyran is NO IDEA: [$warmupAlreadyRun.ToString()]"
+    Log -dataToLog "PreCheck - Warmupalreadyran is NO IDEA: [$warmupAlreadyRan.ToString()]"
 }
 
 if ($warmupAlreadyRan -eq $false)
