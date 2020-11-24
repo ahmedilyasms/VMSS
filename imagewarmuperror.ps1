@@ -87,7 +87,7 @@ function GetRegistryValueBool{ param([string]$regPath, [string]$regKey, [bool]$r
     }
     else
     {
-      Log -dataToLog "It ain't empty"
+      Log -dataToLog "It ain't empty. It's: $value"
     }
 
     [bool]$convertedValue = [Convert]::ToBoolean($value)
