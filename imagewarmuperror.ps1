@@ -1,8 +1,5 @@
 [bool] $isHealthy = $true
 [bool] $lastReturnValueForCosmosDbEmulatorRunning = $false
-$HealthyLogFile = "c:\Healthy.txt"
-$UnhealthyLogFile = "c:\Unhealthy.txt"
-$logFile = "c:\MyLog.txt"
 
 $registryPath = "HKCU:\Software\Microsoft\AzureDevOps\VMSS\MSEng"
 $regKeyIsWarmupRunning = "IsWarmupRunning"
@@ -16,12 +13,6 @@ function Log
   try
   {   
     Write-Host $dataToLog
-    if (!(Test-Path -Path $logFile))
-    {
-       Set-Content -Path $logFile -Value ""
-    }
-   
-    Add-Content -Path $logFile -Value "$(Get-Date) $dataToLog `n"
     
     if ($logToService)
     {
@@ -32,12 +23,10 @@ function Log
          $machineInfo = "$env:COMPUTERNAME, $IPInfo"
          $params = @{"data"="$(Get-Date)- $machineInfo >>> $dataToLog"}
          Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
-         Start-Sleep -Seconds 6
        }
        catch
        {
          Write-Host "Unable to call webservice to log: $_"
-         Add-Content -Path $logFile -Value "Unable to call webservice to log: $_"
        }
     }
    }
@@ -217,7 +206,9 @@ function IsCosmosDbEmulatorRunning([string] $source)
 $warmupAlreadyRan = CheckIfWarmupAlreadyRan
 Log -dataToLog "Now checking if warmup already ran. Value is: [$warmupAlreadyRan]"
 
-if (-not (CheckIfWarmupAlreadyRan))
+exit -202
+
+if ($warmupAlreadyRan -eq $false)
 {
     AddOrUpdateWarmupRunningRegistry -isWarmupRunning $true
     $warmupAlreadyRan = $true
