@@ -64,7 +64,7 @@ function GetRegistryValue{ param([string]$regPath, [string]$regKey)
 
     try
     {
-        $value = (Get-ItemProperty -Path $regPath -Name $regKey -ErrorAction Stop).$regKey
+        $value = (Get-ItemProperty -Path $regPath -Name $regKey -ErrorAction Stop).$regKey | Out-Null
         return $value
     }
     catch
@@ -161,7 +161,7 @@ function GetPreviousWarmupResult()
 
 function CheckIfWarmupAlreadyRan()
 {
-    $isWarmupRunning = GetRegistryValue -regPath $registryPath -regKey $regKeyIsWarmupRunning # GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning
+    $isWarmupRunning = (GetRegistryValue -regPath $registryPath -regKey $regKeyIsWarmupRunning | Select -Last 1) # GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning
     
     Log -dataToLog "In CheckIfWarmupAlreadyRan. Value is [$isWarmupRunning]"
 
@@ -210,7 +210,7 @@ function IsCosmosDbEmulatorRunning([string] $source)
     return $false
 }
 
-$warmupAlreadyRan = CheckIfWarmupAlreadyRan
+$warmupAlreadyRan = (CheckIfWarmupAlreadyRan | Select -Last 1)
 Log -dataToLog "Now checking if warmup already ran. Value is: [$warmupAlreadyRan]"
 if ($warmupAlreadyRan -eq $false)
 {
