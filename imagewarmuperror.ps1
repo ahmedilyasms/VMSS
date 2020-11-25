@@ -22,7 +22,7 @@ function Log
          $tmpLoggerEndPoint = "https://vmssazdosimplelogger-test.azurewebsites.net/api/VMSSAzDevOpsSimpleTestLogger"
          $machineInfo = "$env:COMPUTERNAME, $IPInfo"
          $params = @{"data"="$(Get-Date)- $machineInfo >>> $dataToLog"}
-         Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params
+         Invoke-WebRequest -Uri $tmpLoggerEndPoint -Method POST -Body $params | Out-Null
        }
        catch
        {
@@ -64,7 +64,7 @@ function GetRegistryValue{ param([string]$regPath, [string]$regKey)
 
     try
     {
-        $value = (Get-ItemProperty -Path $regPath -Name $regKey -ErrorAction Stop).$regKey | Out-Null
+        $value = (Get-ItemProperty -Path $regPath -Name $regKey -ErrorAction Stop).$regKey #| Out-Null
         return $value
     }
     catch
