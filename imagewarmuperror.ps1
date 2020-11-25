@@ -51,7 +51,7 @@ function AddOrUpdateRegistryValueBool { param([string] $regPath, [string] $regKe
   }
   
   [int]$intVal = [Convert]::ToInt32($regKeyBoolValue)
-  New-ItemProperty -Path $regPath -Name $regKey -Value $intVal -PropertyType DWORD -Force | Out-Null
+  New-ItemProperty -Path $regPath -Name $regKey -Value $intVal -PropertyType DWORD -Force #| Out-Null
   Log -dataToLog "Wrote Registry: $regPath $regKey : $intVal (value maps to $regKeyBoolValue)"
 }
 
