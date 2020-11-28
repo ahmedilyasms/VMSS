@@ -1,4 +1,3 @@
-[bool] $isHealthy = $true
 [bool] $lastReturnValueForCosmosDbEmulatorRunning = $false
 
 $registryPath = "HKCU:\Software\Microsoft\AzureDevOps\VMSS\MSEng"
@@ -136,14 +135,6 @@ function Initialize()
     }
 }
 
-Log -dataToLog "initializing!"
-Initialize
-$tmpWarmRunning = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
-$tmpIsFirstRun = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsFirstRun -returnNullIfNotFound $true
-$tmpHealthy = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
-
-#Log -dataToLog "Initialize ran. Values: WarmupRunning [$tmpWarmRunning], firstRun [$tmpIsFirstRun], Healthy: [$tmpHealthy]"
-
 function GetPreviousWarmupResult()
 {
     $result = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
@@ -211,135 +202,159 @@ function IsCosmosDbEmulatorRunning([string] $source)
     return $false
 }
 
-[boolean]$warmupAlreadyRan = CheckIfWarmupAlreadyRan
-Log -dataToLog "Now checking if warmup already ran. Value is: [$warmupAlreadyRan]"
-if ($warmupAlreadyRan -eq $false)
+function WarmupCosmosDBEmulator()
 {
-    Log -dataToLog "PreCheck - Warmupalreadyran is false!"
-}
-elseif ($warmupAlreadyRan -eq $true)
-{
-    Log -dataToLog "PreCheck - Warmupalreadyran is true!!!"
-}
-elseif ($warmupAlreadyRan -eq $null)
-{
-    Log -dataToLog "PreCheck - Warmupalreadyran is null!!!"
-}
-else
-{
-    Log -dataToLog "PreCheck - Warmupalreadyran is NO IDEA: [$warmupAlreadyRan.ToString()]"
-}
-
-if ($warmupAlreadyRan -eq $false)
-{
-    AddOrUpdateWarmupRunningRegistry -isWarmupRunning $true
-    $warmupAlreadyRan = $true
-    $Source = "C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe"
-    if (Test-Path $Source) 
+    [boolean]$warmupAlreadyRan = CheckIfWarmupAlreadyRan
+    Log -dataToLog "Now checking if warmup already ran. Value is: [$warmupAlreadyRan]"
+    <#if ($warmupAlreadyRan -eq $false)
     {
-       $dataPath = "C:\"
-       if(Test-Path "D:\") 
-       {
-           $dataPath = "D:\"
-       }
+        Log -dataToLog "PreCheck - Warmupalreadyran is false!"
+    }
+    elseif ($warmupAlreadyRan -eq $true)
+    {
+        Log -dataToLog "PreCheck - Warmupalreadyran is true!!!"
+    }
+    elseif ($warmupAlreadyRan -eq $null)
+    {
+        Log -dataToLog "PreCheck - Warmupalreadyran is null!!!"
+    }
+    else
+    {
+        Log -dataToLog "PreCheck - Warmupalreadyran is NO IDEA: [$warmupAlreadyRan.ToString()]"
+    }#>
 
-       $Arguments = "/NoExplorer","/NoTelemetry","/DisableRateLimiting","/NoFirewall","/PartitionCount=25","/NoUI","/DataPath=$dataPath"
+    if ($warmupAlreadyRan -eq $false)
+    {
+        [bool] $isHealthy = $true
+        AddOrUpdateWarmupRunningRegistry -isWarmupRunning $true
+        $warmupAlreadyRan = $true
+        $Source = "C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe"
+        if (Test-Path $Source) 
+        {
+           $dataPath = "C:\"
+           if(Test-Path "D:\") 
+           {
+               $dataPath = "D:\"
+           }
 
-        # find proc and taskkill
-        try
-        {
-            Log -dataToLog "Finding cosmosdb emulator related items first and killing it if its running"
-            Get-Process | Where-Object {$_.Name -like "Microsoft.Azure.Cosmos*"} | Stop-Process
-            Get-Process | Where-Object {$_.Name -like "CosmosDb*"} | Stop-Process
-            Log -dataToLog "Finished finding cosmosdb emulator related items"
-            Log -dataToLog "Waiting for a few seconds..."
-            Start-Sleep -Seconds 5
-        }
-        catch
-        {
-            Log -dataToLog $_
-            #No proc found
-        }
+           $Arguments = "/NoExplorer","/NoTelemetry","/DisableRateLimiting","/NoFirewall","/PartitionCount=25","/NoUI","/DataPath=$dataPath"
+
+            # find proc and taskkill
+            try
+            {
+                Log -dataToLog "Finding cosmosdb emulator related items first and killing it if its running"
+                Get-Process | Where-Object {$_.Name -like "Microsoft.Azure.Cosmos*"} | Stop-Process
+                Get-Process | Where-Object {$_.Name -like "CosmosDb*"} | Stop-Process
+                Log -dataToLog "Finished finding cosmosdb emulator related items"
+                Log -dataToLog "Waiting for a few seconds..."
+                Start-Sleep -Seconds 5
+            }
+            catch
+            {
+                Log -dataToLog $_
+                #No proc found
+            }
         
-       Log -dataToLog "Starting Cosmos DB Emulator..."
-       try
-       {
-           $tmp = Start-Process -FilePath $Source -ArgumentList $Arguments -PassThru
-           $tmp | Wait-Process -Timeout 5 -ErrorAction Stop
-           Log -dataToLog "Waited for process successfully for timeout to start the emulator"
-       }
-       catch
-       {
-           Log -dataToLog "Error in wait process: $_"
-       }
+           Log -dataToLog "Starting Cosmos DB Emulator..."
+           try
+           {
+               $tmp = Start-Process -FilePath $Source -ArgumentList $Arguments -PassThru
+               $tmp | Wait-Process -Timeout 5 -ErrorAction Stop
+               Log -dataToLog "Waited for process successfully for timeout to start the emulator"
+           }
+           catch
+           {
+               Log -dataToLog "Error in wait process: $_"
+           }
     
-       # This is expected to take < 300 seconds.
-       $timeoutSeconds = 300
-       Log -dataToLog "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
+           # This is expected to take < 300 seconds.
+           $timeoutSeconds = 300
+           Log -dataToLog "Waiting for Cosmos DB Emulator Come to running state within $timeoutSeconds seconds"
 
-       $stopwatch = [system.diagnostics.stopwatch]::StartNew()
-       try
-       {
-          while(-not (IsCosmosDbEmulatorRunning -source $Source) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
-          {
-            Log -dataToLog "Sleeping..." -logToService $false
-            Start-Sleep -Seconds 10
-          }
+           $stopwatch = [system.diagnostics.stopwatch]::StartNew()
+           try
+           {
+              while(-not (IsCosmosDbEmulatorRunning -source $Source) -and $stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) 
+              {
+                Log -dataToLog "Sleeping..." -logToService $false
+                Start-Sleep -Seconds 10
+              }
           
-          $stopwatch.Stop()
-          Log -dataToLog "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
+              $stopwatch.Stop()
+              Log -dataToLog "Outside while loop. The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
           
-          #one more if false
-          if (-not ($lastReturnValueForCosmosDbEmulatorRunning))
-          {
-            $lastReturnValueForCosmosDbEmulatorRunning = IsCosmosDbEmulatorRunning -source $Source
+              #one more if false
+              if (-not ($lastReturnValueForCosmosDbEmulatorRunning))
+              {
+                $lastReturnValueForCosmosDbEmulatorRunning = IsCosmosDbEmulatorRunning -source $Source
             
-            Log -dataToLog "One last run... The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
-          }
+                Log -dataToLog "One last run... The last result was: $lastReturnValueForCosmosDbEmulatorRunning"
+              }
                
-          $isHealthy = $lastReturnValueForCosmosDbEmulatorRunning 
-          AddOrUpdateIsHealthyRegistry -isHealthy $isHealthy
-          if ($isHealthy -eq $true) 
-          {
-             Log -dataToLog "All good"
-          }
-          else
-          {
-            Log -dataToLog "Not good"
-          }
-       }
-       catch
-       {
-          $stopwatch.Stop()
-          $isHealthy = $false
-          AddOrUpdateIsHealthyRegistry -isHealthy $isHealthy
-          Write-Host $_ 
-          $string_err = $_ | Out-String
-          Log -dataToLog "$string_err"
-       }
+              $isHealthy = $lastReturnValueForCosmosDbEmulatorRunning 
+              AddOrUpdateIsHealthyRegistry -isHealthy $isHealthy
+              if ($isHealthy -eq $true) 
+              {
+                 Log -dataToLog "All good"
+              }
+              else
+              {
+                Log -dataToLog "Not good"
+              }
+           }
+           catch
+           {
+              $stopwatch.Stop()
+              $isHealthy = $false
+              AddOrUpdateIsHealthyRegistry -isHealthy $isHealthy
+              Write-Host $_ 
+              $string_err = $_ | Out-String
+              Log -dataToLog "$string_err"
+           }
 
-   } 
-   else 
-   { 
-       $isHealthy = $false
-       AddOrUpdateIsHealthyRegistry -isHealthy $isHealthy
-       # Ignore Images without Cosmos DB installed
-       Log -dataToLog "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."   
-   }
+       } 
+       else 
+       { 
+           $isHealthy = $false
+           AddOrUpdateIsHealthyRegistry -isHealthy $isHealthy
+           # Ignore Images without Cosmos DB installed
+           Log -dataToLog "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."   
+       }
+    }
+    else
+    {
+        Log -dataToLog "Warmup already ran!!"
+       #Warmup already ran. What was the result? Lets return that result back to the caller.
+       if (-not (GetPreviousWarmupResult))
+       {
+          exit -200 #return non zero exit code
+       }
+       else
+       {
+          exit 0
+       }
+    }
+}
+
+
+#This function To be run after initialize.
+function DoWarmupChecks()
+{
+    WarmupCosmosDBEmulator
+
+    
 
     #Finalize the warmup result
     FinalizeWarmupResult
 }
-else
-{
-    Log -dataToLog "Warmup already ran!!"
-   #Warmup already ran. What was the result? Lets return that result back to the caller.
-   if (-not (GetPreviousWarmupResult))
-   {
-      exit -200 #return non zero exit code
-   }
-   else
-   {
-      exit 0
-   }
-}
+
+
+Log -dataToLog "initializing!"
+Initialize
+<#$tmpWarmRunning = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
+$tmpIsFirstRun = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsFirstRun -returnNullIfNotFound $true
+$tmpHealthy = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
+#>
+#Log -dataToLog "Initialize ran. Values: WarmupRunning [$tmpWarmRunning], firstRun [$tmpIsFirstRun], Healthy: [$tmpHealthy]"
+DoWarmupChecks
+
