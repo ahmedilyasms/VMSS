@@ -4,6 +4,7 @@ $registryPath = "HKCU:\Software\Microsoft\AzureDevOps\VMSS\MSEng"
 $regKeyIsWarmupRunning = "IsWarmupRunning"
 $regKeyIsHealthy = "IsHealthy"
 $regKeyIsFirstRun = "IsFirstRun"
+$regKeyIsCosmosDBEmuInstalled = "IsCosmosDBEmuInstalled"
 
 
 function Log 
@@ -73,7 +74,6 @@ function GetRegistryValue{ param([string]$regPath, [string]$regKey)
     }
 }
 
-
 function GetRegistryValueBool{ param([string]$regPath, [string]$regKey, [bool]$returnNullIfNotFound = $false)
    
     $value = GetRegistryValue -regPath $regPath -regKey $regKey
@@ -108,30 +108,37 @@ function AddOrUpdateIsHealthyRegistry { param([bool] $isHealthy)
   AddOrUpdateRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -regKeyBoolValue $isHealthy
 }
 
+function AddOrUpdateIsCosmosDBEmuInstalled { param([bool] $isInstalled)
+    AddOrUpdateRegistryValueBool -regPath $registryPath -regKey $regKeyIsCosmosDBEmuInstalled -regKeyBoolValue $isInstalled
+}
+
 
 function Initialize()
 {
     #Create regkeys with default values if they do not exist
     
-    $val = GetRegistryValue -regPath $registryPath -regKey $regKeyIsWarmupRunning #GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
+    $val = GetRegistryValue -regPath $registryPath -regKey $regKeyIsWarmupRunning
     if ([string]::IsNullOrWhiteSpace($val))
     {
-        #Log -dataToLog "WarmupKeyRunning is null so now adding to reg"
         AddOrUpdateWarmupRunningRegistry -isWarmupRunning $false     
     }
 
     $val = GetRegistryValue -regPath $registryPath -regKey $regKeyIsHealthy
     if ([string]::IsNullOrWhiteSpace($val))
     {
-        #Log -dataToLog "regKeyIsHealthy is null so now adding to reg"
         AddOrUpdateIsHealthyRegistry -isHealthy $false
     }
 
     $val = GetRegistryValue -regPath $registryPath -regKey $regKeyIsFirstRun
     if ([string]::IsNullOrWhiteSpace($val))
     {
-        #Log -dataToLog "regKeyIsFirstRun is null so now adding to reg"
         AddOrUpdateFirstRunRegistry -isFirstRun $true
+    }
+
+    $val = GetRegistryValue -regPath $registryPath -regKey $regKeyIsCosmosDBEmuInstalled
+    if ([string]::IsNullOrWhiteSpace($val))
+    {
+        AddOrUpdateIsCosmosDBEmuInstalled -isInstalled $true
     }
 }
 
@@ -166,7 +173,12 @@ function FinalizeWarmupResult()
     AddOrUpdateWarmupRunningRegistry -isWarmupRunning $false
     AddOrUpdateFirstRunRegistry -isFirstRun $false
 
-    $healthyValue = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy
+    #In future, for other dependencies, we should get it's own respective healthy state values and then calculate what is defined as healthy and ready to be provisioned instead of looking at the IsHealthy key
+    #Reason is, say for instance a dependency is not installed then it should not be considered unhealthy, unless the script or decision is explicitly is written in such a way
+    #In our case, CosmosDBEmu is essential so we tie it strongly to the IsHealthy state.
+
+    $healthyValue = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy 
+    
     Log -dataToLog "In FinalizeWarmupResult with isHealthy being: [$healthyValue]"
     if ($healthyValue -eq $true)
     {    
@@ -203,34 +215,15 @@ function IsCosmosDbEmulatorRunning([string] $source)
 }
 
 function WarmupCosmosDBEmulator()
-{
-    [boolean]$warmupAlreadyRan = CheckIfWarmupAlreadyRan
-    Log -dataToLog "Now checking if warmup already ran. Value is: [$warmupAlreadyRan]"
-    <#if ($warmupAlreadyRan -eq $false)
-    {
-        Log -dataToLog "PreCheck - Warmupalreadyran is false!"
-    }
-    elseif ($warmupAlreadyRan -eq $true)
-    {
-        Log -dataToLog "PreCheck - Warmupalreadyran is true!!!"
-    }
-    elseif ($warmupAlreadyRan -eq $null)
-    {
-        Log -dataToLog "PreCheck - Warmupalreadyran is null!!!"
-    }
-    else
-    {
-        Log -dataToLog "PreCheck - Warmupalreadyran is NO IDEA: [$warmupAlreadyRan.ToString()]"
-    }#>
-
-    if ($warmupAlreadyRan -eq $false)
-    {
+{    
         [bool] $isHealthy = $true
         AddOrUpdateWarmupRunningRegistry -isWarmupRunning $true
         $warmupAlreadyRan = $true
         $Source = "C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe"
         if (Test-Path $Source) 
         {
+           AddOrUpdateIsCosmosDBEmuInstalled -isInstalled $true
+
            $dataPath = "C:\"
            if(Test-Path "D:\") 
            {
@@ -315,15 +308,50 @@ function WarmupCosmosDBEmulator()
        } 
        else 
        { 
-           $isHealthy = $false
+           $isHealthy = $true
            AddOrUpdateIsHealthyRegistry -isHealthy $isHealthy
+           AddOrUpdateIsCosmosDBEmuInstalled -isInstalled $false
            # Ignore Images without Cosmos DB installed
-           Log -dataToLog "CosmosDB Emulator not installed. Exiting INTENTIONALLY with a non-zero code."   
-       }
+           Log -dataToLog "CosmosDB Emulator not installed."   
+
+       }    
+}
+
+
+#This function To be run after initialize.
+function DoWarmupChecks()
+{
+    [boolean]$warmupAlreadyRan = CheckIfWarmupAlreadyRan
+    Log -dataToLog "Now checking if warmup already ran. Value is: [$warmupAlreadyRan]"
+    
+    <#if ($warmupAlreadyRan -eq $false)
+    {
+        Log -dataToLog "PreCheck - Warmupalreadyran is false!"
+    }
+    elseif ($warmupAlreadyRan -eq $true)
+    {
+        Log -dataToLog "PreCheck - Warmupalreadyran is true!!!"
+    }
+    elseif ($warmupAlreadyRan -eq $null)
+    {
+        Log -dataToLog "PreCheck - Warmupalreadyran is null!!!"
     }
     else
     {
-        Log -dataToLog "Warmup already ran!!"
+        Log -dataToLog "PreCheck - Warmupalreadyran is NO IDEA: [$warmupAlreadyRan.ToString()]"
+    }#>
+
+    if ($warmupAlreadyRan -eq $false)
+    {
+        WarmupCosmosDBEmulator    
+
+        #Finalize the warmup result
+        FinalizeWarmupResult
+    }
+    else
+    {
+       Log -dataToLog "Warmup already ran!!"
+     
        #Warmup already ran. What was the result? Lets return that result back to the caller.
        if (-not (GetPreviousWarmupResult))
        {
@@ -337,18 +365,6 @@ function WarmupCosmosDBEmulator()
 }
 
 
-#This function To be run after initialize.
-function DoWarmupChecks()
-{
-    WarmupCosmosDBEmulator
-
-    
-
-    #Finalize the warmup result
-    FinalizeWarmupResult
-}
-
-
 Log -dataToLog "initializing!"
 Initialize
 <#$tmpWarmRunning = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
@@ -356,5 +372,5 @@ $tmpIsFirstRun = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsFi
 $tmpHealthy = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
 #>
 #Log -dataToLog "Initialize ran. Values: WarmupRunning [$tmpWarmRunning], firstRun [$tmpIsFirstRun], Healthy: [$tmpHealthy]"
-DoWarmupChecks
 
+DoWarmupChecks
