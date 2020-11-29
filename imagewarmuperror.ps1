@@ -355,7 +355,7 @@ function DoWarmupChecks()
        #Warmup already ran. What was the result? Lets return that result back to the caller.
        if (-not (GetPreviousWarmupResult))
        {
-          exit -200 #return non zero exit code
+          exit -201 #return non zero exit code
        }
        else
        {
