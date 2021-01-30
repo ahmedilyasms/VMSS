@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------
+<# ---------------------------------------------------------------------------
 // Copyright Microsoft Corporation. All Rights Reserved.
 //
 // EPSVMImageWarmup.ps1
@@ -9,7 +9,7 @@
 // Virtual Machine to ensure everything is healthy before allowing it to
 // be provisioned in VMSS
 //
-//-------------------------------------------------------------------------*/
+//-------------------------------------------------------------------------*/ #>
 
 [bool] $lastReturnValueForCosmosDbEmulatorRunning = $false
 
