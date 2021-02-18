@@ -1,3 +1,16 @@
+<# ---------------------------------------------------------------------------
+// Copyright Microsoft Corporation. All Rights Reserved.
+//
+// EPSVMImageWarmup.ps1
+// v 1.0
+// Authored: 1/29/2021, Ahmed Ilyas
+//
+// This script is used to do health checks for a newly created 
+// Virtual Machine to ensure everything is healthy before allowing it to
+// be provisioned in VMSS
+//
+//-------------------------------------------------------------------------*/ #>
+
 [bool] $lastReturnValueForCosmosDbEmulatorRunning = $false
 
 $registryPath = "HKCU:\Software\Microsoft\AzureDevOps\VMSS\MSEng"
@@ -367,10 +380,5 @@ function DoWarmupChecks()
 
 Log -dataToLog "initializing!"
 Initialize
-<#$tmpWarmRunning = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsWarmupRunning -returnNullIfNotFound $true
-$tmpIsFirstRun = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsFirstRun -returnNullIfNotFound $true
-$tmpHealthy = GetRegistryValueBool -regPath $registryPath -regKey $regKeyIsHealthy -returnNullIfNotFound $true
-#>
-#Log -dataToLog "Initialize ran. Values: WarmupRunning [$tmpWarmRunning], firstRun [$tmpIsFirstRun], Healthy: [$tmpHealthy]"
 
 DoWarmupChecks
