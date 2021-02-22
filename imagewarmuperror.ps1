@@ -330,6 +330,39 @@ function WarmupCosmosDBEmulator()
        }    
 }
 
+function ExpandDrive()
+{    
+    Write-host "Expanding C Drive"
+    try
+    {
+        $size = Get-PartitionSupportedSize -DriveLetter C
+        Resize-Partition -DriveLetter C -Size $size.SizeMax
+    }
+    catch
+    {
+        Write-Host "Error in expanding C Drive"
+        Write-Host $_ 
+        $string_err = $_ | Out-String
+        Log -dataToLog "$string_err"
+    }
+}
+
+function RestartIIS()
+{
+    Write-Host "Restarting IIS"
+    try
+    {
+        iisreset /restart
+    }
+    catch
+    {
+        Write-Host "Error in restarting IIS"
+        Write-Host $_ 
+        $string_err = $_ | Out-String
+        Log -dataToLog "$string_err"
+    }
+
+}
 
 #This function To be run after initialize.
 function DoWarmupChecks()
@@ -357,6 +390,8 @@ function DoWarmupChecks()
     if ($warmupAlreadyRan -eq $false)
     {
         WarmupCosmosDBEmulator    
+        ExpandDrive
+        RestartIIS
 
         #Finalize the warmup result
         FinalizeWarmupResult
